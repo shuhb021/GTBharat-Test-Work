@@ -31,6 +31,13 @@ FAR_EXPORT const char* compute_variances(const char* json_in);
 FAR_EXPORT const char* compute_ratios(const char* bs_json, const char* pl_json);
 
 /**
+ * Compute all 8 financial ratios directly from raw parsed rows.
+ * Input: bs_json = raw BS rows array, pl_json = raw PL rows array
+ * Output JSON: {"ratios": [...], "summary": {"total_equity_cy": ...}}
+ */
+FAR_EXPORT const char* compute_ratios_from_raw(const char* bs_json, const char* pl_json);
+
+/**
  * Process large datasets with parallel computation.
  * Same as compute_variances but uses std::async for parallelism.
  */

@@ -299,10 +299,9 @@ class MainWindow(QMainWindow):
             QApplication.processEvents()
             
             from src.core.excel_parser import (
-                parse_balance_sheet, parse_profit_loss, parse_notes,
-                extract_bs_summary, extract_pl_summary
+                parse_balance_sheet, parse_profit_loss, parse_notes
             )
-            from src.core.cpp_bridge import compute_variances, compute_ratios
+            from src.core.cpp_bridge import compute_variances, compute_ratios_from_raw
             
             bs_parsed = parse_balance_sheet(form_data['bs_file'])
             
@@ -332,14 +331,15 @@ class MainWindow(QMainWindow):
             bs_result = compute_variances(bs_parsed['data'])
             pl_result = compute_variances(pl_parsed['data'])
             
-            # Step 5: Compute ratios
+            # Step 5: Compute ratios via C++ (which also extracts summaries internally)
             progress.setLabelText('📐 Calculating financial ratios...')
             progress.setValue(65)
             QApplication.processEvents()
             
-            bs_summary = extract_bs_summary(bs_parsed['data'])
-            pl_summary = extract_pl_summary(pl_parsed['data'])
-            ratios = compute_ratios(bs_summary, pl_summary)
+            raw_ratios_result = compute_ratios_from_raw(bs_parsed['data'], pl_parsed['data'])
+            ratios = raw_ratios_result.get('ratios', [])
+            # bs_summary = raw_ratios_result.get('bs_summary', {})
+            # pl_summary = raw_ratios_result.get('pl_summary', {})
             
             # Step 6: Store results
             progress.setLabelText('📊 Building views...')

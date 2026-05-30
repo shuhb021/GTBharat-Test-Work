@@ -248,10 +248,10 @@ class ExportView(QWidget):
         self.docx_btn.setEnabled(False)
         
         try:
-            from src.core.docx_export import export_far_docx
+            from src.core.docx_export import export_docx
             
             d = self.export_data
-            export_far_docx(
+            export_docx(
                 filepath,
                 d.get('bs_result', []),
                 d.get('pl_result', []),

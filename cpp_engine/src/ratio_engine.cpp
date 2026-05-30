@@ -9,8 +9,66 @@
 #include <string>
 #include <sstream>
 #include <vector>
+#include <algorithm>
 
 using json = nlohmann::json;
+
+static std::string to_lower(const std::string& s) {
+    std::string result = s;
+    std::transform(result.begin(), result.end(), result.begin(),
+                   [](unsigned char c){ return std::tolower(c); });
+    return result;
+}
+
+static void find_value(const json& rows, const std::string& keyword, double& cy, double& py, bool exact = false) {
+    std::string kw = to_lower(keyword);
+    for (const auto& row : rows) {
+        std::string p = to_lower(row.value("particulars", ""));
+        if (exact) {
+            if (p == kw) {
+                cy = row.value("cy", 0.0);
+                py = row.value("py", 0.0);
+                return;
+            }
+        } else {
+            if (p.find(kw) != std::string::npos) {
+                cy = row.value("cy", 0.0);
+                py = row.value("py", 0.0);
+                return;
+            }
+        }
+    }
+    cy = 0.0;
+    py = 0.0;
+}
+
+static void find_liability_by_note(const json& rows, const std::string& note_num, bool is_current, double& cy_total, double& py_total) {
+    cy_total = 0.0;
+    py_total = 0.0;
+    bool in_current_section = false;
+    for (const auto& row : rows) {
+        std::string p = to_lower(row.value("particulars", ""));
+        if (p.find("current liabilities") != std::string::npos && p.find("non") == std::string::npos) {
+            in_current_section = true;
+        } else if (p.find("non current liabilities") != std::string::npos || p.find("non-current liabilities") != std::string::npos) {
+            in_current_section = false;
+        }
+        
+        std::string note = "";
+        if (row.contains("note")) {
+            if (row["note"].is_number()) {
+                note = std::to_string(row["note"].get<int>());
+            } else if (row["note"].is_string()) {
+                note = row["note"].get<std::string>();
+            }
+        }
+        
+        if (note == note_num && in_current_section == is_current) {
+            cy_total += row.value("cy", 0.0);
+            py_total += row.value("py", 0.0);
+        }
+    }
+}
 
 static thread_local std::string g_ratio_result;
 
@@ -119,12 +177,12 @@ FAR_EXPORT const char* compute_ratios(const char* bs_json, const char* pl_json) 
                        pbt_py, revenue_ops_py, true),
 
             calc_ratio("Return on Equity (ROE)", "PBT / Avg. Total Equity",
-                       pbt_cy, total_equity_cy,
-                       pbt_py, total_equity_py, true),
+                       pbt_cy, (total_equity_cy + total_equity_py) / 2.0,
+                       pbt_py, total_equity_py / 2.0, true),
 
-            calc_ratio("Return on Capital Employed (ROCE)", "(PBT - Finance Cost) / (TE + LTB + STB)",
-                       pbt_cy - finance_cost_cy, total_equity_cy + ltb_cy + stb_cy,
-                       pbt_py - finance_cost_py, total_equity_py + ltb_py + stb_py, true),
+            calc_ratio("Return on Capital Employed (ROCE)", "(PBT + Finance Cost) / (TE + LTB + STB)",
+                       pbt_cy + finance_cost_cy, total_equity_cy + ltb_cy + stb_cy,
+                       pbt_py + finance_cost_py, total_equity_py + ltb_py + stb_py, true),
 
             calc_ratio("Debtor Turnover Ratio", "Revenue from Ops / Closing Debtors",
                        revenue_ops_cy, debtors_cy,
@@ -149,6 +207,89 @@ FAR_EXPORT const char* compute_ratios(const char* bs_json, const char* pl_json) 
 
     } catch (const std::exception& e) {
         json error = json::array();
+        g_ratio_result = error.dump();
+        return g_ratio_result.c_str();
+    }
+}
+
+FAR_EXPORT const char* compute_ratios_from_raw(const char* bs_json, const char* pl_json) {
+    try {
+        json bs_rows = json::parse(bs_json);
+        json pl_rows = json::parse(pl_json);
+        
+        json bs = json::object();
+        json pl = json::object();
+        
+        double cy=0, py=0;
+        
+        find_value(bs_rows, "total equity", cy, py, true);
+        bs["total_equity_cy"] = cy; bs["total_equity_py"] = py;
+        
+        find_value(bs_rows, "total current assets", cy, py);
+        bs["total_ca_cy"] = cy; bs["total_ca_py"] = py;
+        
+        find_value(bs_rows, "total current liabilities", cy, py);
+        bs["total_cl_cy"] = cy; bs["total_cl_py"] = py;
+        
+        find_value(bs_rows, "total non-current liabilities", cy, py);
+        if (cy == 0 && py == 0) find_value(bs_rows, "total non current liabilities", cy, py);
+        bs["total_ncl_cy"] = cy; bs["total_ncl_py"] = py;
+        
+        double ltb_pref_cy, ltb_pref_py, ltb_lease_cy, ltb_lease_py;
+        find_liability_by_note(bs_rows, "11", false, ltb_pref_cy, ltb_pref_py);
+        find_liability_by_note(bs_rows, "12", false, ltb_lease_cy, ltb_lease_py);
+        bs["ltb_cy"] = ltb_pref_cy + ltb_lease_cy;
+        bs["ltb_py"] = ltb_pref_py + ltb_lease_py;
+        
+        double stb_pref_cy, stb_pref_py, stb_lease_cy, stb_lease_py;
+        find_liability_by_note(bs_rows, "11", true, stb_pref_cy, stb_pref_py);
+        find_liability_by_note(bs_rows, "12", true, stb_lease_cy, stb_lease_py);
+        bs["stb_cy"] = stb_pref_cy + stb_lease_cy;
+        bs["stb_py"] = stb_pref_py + stb_lease_py;
+        
+        find_value(bs_rows, "trade receivables", cy, py);
+        bs["debtors_cy"] = cy; bs["debtors_py"] = py;
+        
+        // PL
+        find_value(pl_rows, "software services", cy, py);
+        if (cy == 0 && py == 0) find_value(pl_rows, "revenue from operations", cy, py);
+        pl["revenue_ops_cy"] = cy; pl["revenue_ops_py"] = py;
+        
+        find_value(pl_rows, "total income", cy, py);
+        pl["total_revenue_cy"] = cy; pl["total_revenue_py"] = py;
+        
+        find_value(pl_rows, "profit", cy, py);
+        for (const auto& row : pl_rows) {
+            std::string p = to_lower(row.value("particulars", ""));
+            if (p.find("profit") != std::string::npos && p.find("before") != std::string::npos && p.find("tax") != std::string::npos) {
+                cy = row.value("cy", 0.0);
+                py = row.value("py", 0.0);
+                break;
+            }
+        }
+        pl["pbt_cy"] = cy; pl["pbt_py"] = py;
+        
+        find_value(pl_rows, "finance charge", cy, py);
+        if (cy == 0 && py == 0) find_value(pl_rows, "finance cost", cy, py);
+        pl["finance_cost_cy"] = cy; pl["finance_cost_py"] = py;
+        
+        std::string bs_str = bs.dump();
+        std::string pl_str = pl.dump();
+        
+        const char* ratios_cstr = compute_ratios(bs_str.c_str(), pl_str.c_str());
+        json ratios_json = json::parse(ratios_cstr);
+        
+        json final_result = json::object();
+        final_result["ratios"] = ratios_json;
+        final_result["bs_summary"] = bs;
+        final_result["pl_summary"] = pl;
+        
+        g_ratio_result = final_result.dump();
+        return g_ratio_result.c_str();
+        
+    } catch (const std::exception& e) {
+        json error = json::object();
+        error["error"] = e.what();
         g_ratio_result = error.dump();
         return g_ratio_result.c_str();
     }

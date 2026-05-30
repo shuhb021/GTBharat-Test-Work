@@ -55,7 +55,7 @@ def _add_table_row(table, values, is_header=False, highlight=False):
     return row
 
 
-def export_far_docx(output_path, bs_result, pl_result, ratios,
+def export_docx(output_path, bs_result, pl_result, ratios,
                     remarks_bs, remarks_pl,
                     client_name, firm_name, financial_year,
                     rounding_unit, cy_year, py_year):

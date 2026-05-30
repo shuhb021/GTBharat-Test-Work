@@ -115,8 +115,8 @@ def parse_balance_sheet(filepath):
     # Find date columns
     cy_col, py_col, cy_year, py_year, header_row = _find_date_columns(ws)
     if cy_col is None:
-        raise ValueError("Could not find date header columns in Balance Sheet. "
-                         "Expected datetime(YYYY, 3, 31) values in the header rows.")
+        raise ValueError("Could not find year headers (e.g. '31 March 2025') in the Balance Sheet.\n"
+                         "Please load your actual client financial statement, not the blank template.")
 
     # Determine particulars and notes columns
     # In sample: Col A = Particulars, Col C = Notes
@@ -209,7 +209,8 @@ def parse_profit_loss(filepath):
     # Find date columns
     cy_col, py_col, cy_year, py_year, header_row = _find_date_columns(ws)
     if cy_col is None:
-        raise ValueError("Could not find date header columns in P&L statement.")
+        raise ValueError("Could not find year headers (e.g. '31 March 2025') in the P&L statement.\n"
+                         "Please load your actual client financial statement, not the blank template.")
 
     # In sample PL: Col A = Particulars, Col D = Notes
     part_col = 1   # Column A
@@ -288,7 +289,10 @@ def parse_notes(filepath):
             result[sheet_name] = notes_groups
 
     wb.close()
-    logger.info("Parsed notes from %d sheets", len(result))
+    if not result:
+        logger.warning("No notes were parsed. This usually happens if you load a blank template instead of actual client data.")
+    else:
+        logger.info("Parsed notes from %d sheets", len(result))
     return result
 
 

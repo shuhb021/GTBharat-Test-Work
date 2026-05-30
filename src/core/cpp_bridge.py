@@ -24,6 +24,11 @@ try:
         _dll.compute_variances.argtypes = [ctypes.c_char_p]
         _dll.compute_ratios.restype = ctypes.c_char_p
         _dll.compute_ratios.argtypes = [ctypes.c_char_p, ctypes.c_char_p]
+        try:
+            _dll.compute_ratios_from_raw.restype = ctypes.c_char_p
+            _dll.compute_ratios_from_raw.argtypes = [ctypes.c_char_p, ctypes.c_char_p]
+        except AttributeError:
+            pass # old dll version
         _dll.process_bulk_data.restype = ctypes.c_char_p
         _dll.process_bulk_data.argtypes = [ctypes.c_char_p, ctypes.c_int]
         _dll.free_result.restype = None
@@ -156,13 +161,14 @@ def _py_compute_ratios(bs_summary, pl_summary):
         {
             'key': 'Return on Equity (ROE)',
             'formula': 'PBT / Avg. Total Equity',
-            **calc_ratio(pbt_cy, total_equity_cy, pbt_py, total_equity_py, True)
+            **calc_ratio(pbt_cy, (total_equity_cy + total_equity_py) / 2.0, 
+                         pbt_py, total_equity_py / 2.0, True)
         },
         {
             'key': 'Return on Capital Employed (ROCE)',
-            'formula': '(PBT - Finance Cost) / (TE + LTB + STB)',
-            **calc_ratio(pbt_cy - finance_cost_cy, total_equity_cy + ltb_cy + stb_cy,
-                         pbt_py - finance_cost_py, total_equity_py + ltb_py + stb_py, True)
+            'formula': '(PBT + Finance Cost) / (TE + LTB + STB)',
+            **calc_ratio(pbt_cy + finance_cost_cy, total_equity_cy + ltb_cy + stb_cy,
+                         pbt_py + finance_cost_py, total_equity_py + ltb_py + stb_py, True)
         },
         {
             'key': 'Debtor Turnover Ratio',
@@ -224,6 +230,39 @@ def compute_ratios(bs_summary, pl_summary):
             logger.error("C++ compute_ratios failed: %s — falling back", e)
 
     return _py_compute_ratios(bs_summary, pl_summary)
+
+def compute_ratios_from_raw(bs_data, pl_data):
+    """
+    Compute financial ratios and extract summaries directly from raw parsed rows.
+    
+    Args:
+        bs_data: list of raw Balance Sheet row dicts
+        pl_data: list of raw P&L row dicts
+    Returns:
+        dict with keys: ratios, bs_summary, pl_summary
+    """
+    if _dll and hasattr(_dll, 'compute_ratios_from_raw'):
+        try:
+            bs_json = json.dumps(bs_data).encode('utf-8')
+            pl_json = json.dumps(pl_data).encode('utf-8')
+            result_ptr = _dll.compute_ratios_from_raw(bs_json, pl_json)
+            result = json.loads(result_ptr.decode('utf-8'))
+            _dll.free_result(result_ptr)
+            return result
+        except Exception as e:
+            logger.error("C++ compute_ratios_from_raw failed: %s — falling back", e)
+
+    # Pure-Python fallback using existing parsing logic
+    from src.core.excel_parser import extract_bs_summary, extract_pl_summary
+    bs_summary = extract_bs_summary(bs_data)
+    pl_summary = extract_pl_summary(pl_data)
+    ratios = _py_compute_ratios(bs_summary, pl_summary)
+    
+    return {
+        "ratios": ratios,
+        "bs_summary": bs_summary,
+        "pl_summary": pl_summary
+    }
 
 
 def process_bulk_data(data):
