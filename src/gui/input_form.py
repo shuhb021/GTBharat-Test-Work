@@ -1,0 +1,311 @@
+"""
+FAR Automation Tool — Input Form (Module 1)
+Client information form with file upload panels and Generate button.
+"""
+
+import os
+from PyQt6.QtWidgets import (
+    QWidget, QVBoxLayout, QHBoxLayout, QFormLayout, QGroupBox,
+    QLineEdit, QComboBox, QRadioButton, QCheckBox, QPushButton,
+    QLabel, QFileDialog, QProgressDialog, QButtonGroup, QFrame,
+    QScrollArea, QSizePolicy, QMessageBox
+)
+from PyQt6.QtCore import pyqtSignal, Qt, QThread, pyqtSlot
+from PyQt6.QtGui import QFont
+
+
+class GenerateWorker(QThread):
+    """Background thread for FAR generation."""
+    progress = pyqtSignal(int, str)
+    finished = pyqtSignal(bool, str)
+    
+    def __init__(self, callback):
+        super().__init__()
+        self.callback = callback
+    
+    def run(self):
+        try:
+            self.callback(self.progress.emit)
+            self.finished.emit(True, "FAR generated successfully!")
+        except Exception as e:
+            self.finished.emit(False, str(e))
+
+
+class FileUploadPanel(QGroupBox):
+    """A file upload panel with Browse button and file info display."""
+    
+    fileSelected = pyqtSignal(str)
+    
+    def __init__(self, title, multi_select=False, parent=None):
+        super().__init__(title, parent)
+        self.multi_select = multi_select
+        self.file_paths = []
+        self._setup_ui()
+    
+    def _setup_ui(self):
+        layout = QVBoxLayout(self)
+        layout.setSpacing(8)
+        
+        # Browse button row
+        btn_row = QHBoxLayout()
+        self.browse_btn = QPushButton('📂 Browse...')
+        self.browse_btn.setFixedWidth(140)
+        self.browse_btn.clicked.connect(self._browse)
+        btn_row.addWidget(self.browse_btn)
+        
+        self.status_icon = QLabel('⬜')
+        self.status_icon.setStyleSheet("font-size: 16px; background: transparent;")
+        btn_row.addWidget(self.status_icon)
+        
+        btn_row.addStretch()
+        layout.addLayout(btn_row)
+        
+        # File path display
+        self.path_label = QLabel('No file selected')
+        self.path_label.setObjectName('mutedLabel')
+        self.path_label.setWordWrap(True)
+        layout.addWidget(self.path_label)
+        
+        # Sheet info
+        self.sheet_label = QLabel('')
+        self.sheet_label.setObjectName('mutedLabel')
+        self.sheet_label.setWordWrap(True)
+        layout.addWidget(self.sheet_label)
+    
+    def _browse(self):
+        if self.multi_select:
+            files, _ = QFileDialog.getOpenFileNames(
+                self, 'Select Excel Files', '',
+                'Excel Files (*.xlsx *.xls)')
+            if files:
+                self.file_paths = files
+                self._update_display()
+        else:
+            file_path, _ = QFileDialog.getOpenFileName(
+                self, 'Select Excel File', '',
+                'Excel Files (*.xlsx *.xls)')
+            if file_path:
+                self.file_paths = [file_path]
+                self._update_display()
+    
+    def _update_display(self):
+        if self.file_paths:
+            names = [os.path.basename(f) for f in self.file_paths]
+            self.path_label.setText(', '.join(names))
+            self.path_label.setStyleSheet("color: #22C55E; background: transparent;")
+            self.status_icon.setText('✅')
+            
+            # Try to show sheet names
+            try:
+                from openpyxl import load_workbook
+                sheets_info = []
+                for fp in self.file_paths:
+                    wb = load_workbook(fp, read_only=True)
+                    sheets_info.append(f"{os.path.basename(fp)}: {', '.join(wb.sheetnames)}")
+                    wb.close()
+                self.sheet_label.setText('Sheets: ' + ' | '.join(sheets_info))
+            except Exception:
+                self.sheet_label.setText('')
+            
+            self.fileSelected.emit(self.file_paths[0])
+    
+    def get_paths(self):
+        return self.file_paths
+    
+    def is_loaded(self):
+        return len(self.file_paths) > 0
+
+
+class InputForm(QWidget):
+    """Module 1 — Input Form for client information and file uploads."""
+    
+    generateRequested = pyqtSignal(dict)
+    
+    def __init__(self, parent=None):
+        super().__init__(parent)
+        self._setup_ui()
+    
+    def _setup_ui(self):
+        # Scroll area wrapper
+        scroll = QScrollArea()
+        scroll.setWidgetResizable(True)
+        scroll.setStyleSheet("QScrollArea { border: none; background: #1E1E1E; }")
+        
+        content = QWidget()
+        main_layout = QVBoxLayout(content)
+        main_layout.setContentsMargins(32, 24, 32, 24)
+        main_layout.setSpacing(20)
+        
+        # Title
+        title = QLabel('📝 Input Form')
+        title.setObjectName('headingLabel')
+        main_layout.addWidget(title)
+        
+        subtitle = QLabel('Enter client details and upload financial statements')
+        subtitle.setObjectName('mutedLabel')
+        main_layout.addWidget(subtitle)
+        
+        # ── Client Information ──
+        info_group = QGroupBox('Client Information')
+        info_layout = QFormLayout(info_group)
+        info_layout.setSpacing(12)
+        info_layout.setContentsMargins(16, 20, 16, 16)
+        
+        self.firm_name = QLineEdit()
+        self.firm_name.setPlaceholderText('Enter firm name...')
+        info_layout.addRow('Firm Name:', self.firm_name)
+        
+        self.client_name = QLineEdit()
+        self.client_name.setPlaceholderText('Enter client name...')
+        info_layout.addRow('Client Name:', self.client_name)
+        
+        self.financial_year = QComboBox()
+        years = [f'{y}-{str(y+1)[-2:]}' for y in range(2025, 2019, -1)]
+        self.financial_year.addItems(years)
+        info_layout.addRow('Financial Year:', self.financial_year)
+        
+        # Rounding unit
+        unit_widget = QWidget()
+        unit_layout = QHBoxLayout(unit_widget)
+        unit_layout.setContentsMargins(0, 0, 0, 0)
+        self.unit_group = QButtonGroup()
+        
+        units = ['Thousands', 'Lakhs', 'Millions']
+        for i, unit in enumerate(units):
+            rb = QRadioButton(unit)
+            self.unit_group.addButton(rb, i)
+            unit_layout.addWidget(rb)
+            if unit == 'Lakhs':
+                rb.setChecked(True)
+        
+        unit_layout.addStretch()
+        info_layout.addRow('Rounding Unit:', unit_widget)
+        
+        # Notes required
+        self.notes_required = QCheckBox('Include Notes to Accounts analysis')
+        self.notes_required.setChecked(True)
+        info_layout.addRow('Notes Required:', self.notes_required)
+        
+        main_layout.addWidget(info_group)
+        
+
+        # ── File Uploads ──
+        files_group = QGroupBox('Financial Statements')
+        files_layout = QVBoxLayout(files_group)
+        files_layout.setSpacing(12)
+        files_layout.setContentsMargins(16, 20, 16, 16)
+        
+        self.bs_upload = FileUploadPanel('Balance Sheet File')
+        files_layout.addWidget(self.bs_upload)
+        
+        self.pl_upload = FileUploadPanel('Profit & Loss File')
+        files_layout.addWidget(self.pl_upload)
+        
+        self.notes_upload = FileUploadPanel('Notes to Accounts Files', multi_select=True)
+        files_layout.addWidget(self.notes_upload)
+        
+        main_layout.addWidget(files_group)
+        
+        # ── Generate Button ──
+        btn_row = QHBoxLayout()
+        btn_row.addStretch()
+        
+        self.generate_btn = QPushButton('🚀  Generate FAR Workpaper')
+        self.generate_btn.setFixedHeight(48)
+        self.generate_btn.setMinimumWidth(280)
+        self.generate_btn.setFont(QFont('Segoe UI', 14, QFont.Weight.Bold))
+        self.generate_btn.setStyleSheet("""
+            QPushButton {
+                background-color: #007ACC;
+                color: #FFFFFF;
+                border: none;
+                border-radius: 6px;
+                padding: 12px 32px;
+                font-size: 14px;
+                font-weight: 700;
+            }
+            QPushButton:hover {
+                background-color: #005f9e;
+            }
+            QPushButton:disabled {
+                background-color: #3C3C3C;
+                color: #666666;
+            }
+        """)
+        self.generate_btn.clicked.connect(self._on_generate)
+        btn_row.addWidget(self.generate_btn)
+        
+        btn_row.addStretch()
+        main_layout.addLayout(btn_row)
+        
+        # Validation error label
+        self.error_label = QLabel('')
+        self.error_label.setObjectName('errorLabel')
+        self.error_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        main_layout.addWidget(self.error_label)
+        
+        main_layout.addStretch()
+        
+        scroll.setWidget(content)
+        
+        # Wrap scroll in main layout
+        wrapper = QVBoxLayout(self)
+        wrapper.setContentsMargins(0, 0, 0, 0)
+        wrapper.addWidget(scroll)
+        
+
+
+    def _validate(self):
+        """Validate all form fields."""
+        errors = []
+        
+        if not self.client_name.text().strip():
+            errors.append('Client Name is required')
+        if not self.bs_upload.is_loaded():
+            errors.append('Balance Sheet file is required')
+        if not self.pl_upload.is_loaded():
+            errors.append('Profit & Loss file is required')
+        
+        if errors:
+            self.error_label.setText('⚠️ ' + ' | '.join(errors))
+            return False
+        
+        self.error_label.setText('')
+        return True
+    
+    def _on_generate(self):
+        """Handle Generate button click."""
+        if not self._validate():
+            return
+        
+        unit_btn = self.unit_group.checkedButton()
+        unit_text = unit_btn.text() if unit_btn else 'Lakhs'
+        
+        form_data = {
+            'firm_name': self.firm_name.text().strip() or 'Audit Firm',
+            'client_name': self.client_name.text().strip(),
+            'financial_year': self.financial_year.currentText(),
+            'rounding_unit': unit_text,
+            'notes_required': self.notes_required.isChecked(),
+            'bs_file': self.bs_upload.get_paths()[0] if self.bs_upload.is_loaded() else '',
+            'pl_file': self.pl_upload.get_paths()[0] if self.pl_upload.is_loaded() else '',
+            'notes_files': self.notes_upload.get_paths(),
+        }
+        
+        self.generateRequested.emit(form_data)
+    
+    def get_form_data(self):
+        """Get current form data without triggering generation."""
+        unit_btn = self.unit_group.checkedButton()
+        unit_text = unit_btn.text() if unit_btn else 'Lakhs'
+        
+        return {
+            'firm_name': self.firm_name.text().strip() or 'Audit Firm',
+            'client_name': self.client_name.text().strip(),
+            'financial_year': self.financial_year.currentText(),
+            'rounding_unit': unit_text,
+            'notes_required': self.notes_required.isChecked(),
+            'bs_file': self.bs_upload.get_paths()[0] if self.bs_upload.is_loaded() else '',
+            'pl_file': self.pl_upload.get_paths()[0] if self.pl_upload.is_loaded() else '',
+            'notes_files': self.notes_upload.get_paths(),
+        }

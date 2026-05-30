@@ -1,0 +1,520 @@
+"""
+FAR Automation Tool — Excel Parser
+Parses client financial statements (Balance Sheet, P&L, Notes to Accounts)
+from Excel files using openpyxl.
+"""
+
+import re
+import logging
+from datetime import datetime
+from openpyxl import load_workbook
+
+logger = logging.getLogger(__name__)
+
+
+def _is_bold(cell):
+    """Check if a cell's font is bold."""
+    try:
+        return cell.font and cell.font.bold
+    except Exception:
+        return False
+
+
+def _get_value(cell):
+    """Get numeric value from cell, return None if not a number."""
+    v = cell.value
+    if v is None:
+        return None
+    if isinstance(v, (int, float)):
+        return float(v)
+    if isinstance(v, str):
+        # Try to parse as number after removing commas
+        cleaned = v.replace(',', '').replace(' ', '').strip()
+        try:
+            return float(cleaned)
+        except (ValueError, TypeError):
+            return None
+    return None
+
+
+def _get_text(cell):
+    """Get text value from cell, return empty string if None."""
+    v = cell.value
+    if v is None:
+        return ''
+    return str(v).strip()
+
+
+def _find_date_columns(ws, search_rows=range(5, 12)):
+    """
+    Find CY and PY date header columns by scanning for datetime(YYYY, 3, 31) values.
+    Returns (cy_col, py_col, cy_year, py_year, header_row).
+    """
+    date_cells = []
+    for row_idx in search_rows:
+        for col_idx in range(1, ws.max_column + 1):
+            cell = ws.cell(row=row_idx, column=col_idx)
+            v = cell.value
+            if isinstance(v, datetime) and v.month == 3 and v.day == 31:
+                date_cells.append((row_idx, col_idx, v.year))
+            elif isinstance(v, str):
+                # Check for text like "As at 31 March 2025" or "31 March 2025"
+                m = re.search(r'31\s*(?:st\s*)?March\s*(\d{4})', v, re.IGNORECASE)
+                if m:
+                    date_cells.append((row_idx, col_idx, int(m.group(1))))
+
+    if len(date_cells) < 2:
+        logger.warning("Could not find two date header columns, found: %s", date_cells)
+        return None, None, None, None, None
+
+    # Sort by year descending — highest year is CY
+    date_cells.sort(key=lambda x: x[2], reverse=True)
+    cy_row, cy_col, cy_year = date_cells[0]
+    py_row, py_col, py_year = date_cells[1]
+    header_row = cy_row
+
+    logger.info("Date headers found: CY=%d (col %d, row %d), PY=%d (col %d, row %d)",
+                cy_year, cy_col, header_row, py_year, py_col, header_row)
+    return cy_col, py_col, cy_year, py_year, header_row
+
+
+def parse_balance_sheet(filepath):
+    """
+    Parse Balance Sheet from client Excel file.
+    
+    Expected structure (from sample):
+    - Row 1: Client name
+    - Row 3: "Balance Sheet as at 31 March YYYY"
+    - Row 7: Headers with datetime(YYYY, 3, 31) in cols G (CY) and I (PY)
+    - Col A: Particulars
+    - Col C: Note numbers
+    - Data from "Assets" row to "Total equity and liabilities" row
+    
+    Returns:
+        dict with keys:
+            'data': list of row dicts
+            'cy_year': int
+            'py_year': int
+            'client_name': str
+    """
+    wb = load_workbook(filepath, data_only=True)
+    
+    # Try to find 'BS' sheet or first sheet
+    ws = None
+    for name in ['BS', 'Balance Sheet', 'BalanceSheet']:
+        if name in wb.sheetnames:
+            ws = wb[name]
+            break
+    if ws is None:
+        ws = wb.worksheets[0]
+        logger.info("No 'BS' sheet found, using first sheet: %s", ws.title)
+
+    # Get client name from A1
+    client_name = _get_text(ws.cell(row=1, column=1))
+
+    # Find date columns
+    cy_col, py_col, cy_year, py_year, header_row = _find_date_columns(ws)
+    if cy_col is None:
+        raise ValueError("Could not find date header columns in Balance Sheet. "
+                         "Expected datetime(YYYY, 3, 31) values in the header rows.")
+
+    # Determine particulars and notes columns
+    # In sample: Col A = Particulars, Col C = Notes
+    part_col = 1   # Column A
+    note_col = 3   # Column C
+
+    # Parse data rows
+    data = []
+    start_row = header_row + 1
+    in_data = False
+
+    for row_idx in range(start_row, ws.max_row + 1):
+        part_text = _get_text(ws.cell(row=row_idx, column=part_col))
+        
+        # Start parsing when we find "Assets"
+        if not in_data and part_text.lower().strip() in ('assets', 'asset'):
+            in_data = True
+        
+        if not in_data:
+            continue
+
+        # Get values
+        note_text = _get_text(ws.cell(row=row_idx, column=note_col))
+        cy_val = _get_value(ws.cell(row=row_idx, column=cy_col))
+        py_val = _get_value(ws.cell(row=row_idx, column=py_col))
+        is_bold = _is_bold(ws.cell(row=row_idx, column=part_col))
+
+        # Skip completely empty rows
+        if not part_text and cy_val is None and py_val is None:
+            continue
+
+        row_data = {
+            'particulars': part_text,
+            'note': note_text,
+            'cy': cy_val if cy_val is not None else 0,
+            'py': py_val if py_val is not None else 0,
+            'is_bold': is_bold,
+            'row_num': row_idx
+        }
+        data.append(row_data)
+
+        # Stop at "Total equity and liabilities"
+        if 'total equity and liabilities' in part_text.lower():
+            break
+
+    wb.close()
+    logger.info("Parsed BS: %d rows, CY=%d, PY=%d", len(data), cy_year, py_year)
+
+    return {
+        'data': data,
+        'cy_year': cy_year,
+        'py_year': py_year,
+        'client_name': client_name,
+        'cy_col_letter': _col_letter(cy_col),
+        'py_col_letter': _col_letter(py_col)
+    }
+
+
+def parse_profit_loss(filepath):
+    """
+    Parse Profit & Loss statement from client Excel file.
+    
+    Expected structure (from sample):
+    - Col A: Particulars
+    - Col D: Note numbers
+    - Col E: CY values, Col G: PY values (row 7 has dates)
+    - Data from "Revenue from operations" to end
+    
+    Returns:
+        dict with keys: 'data', 'cy_year', 'py_year', 'client_name'
+    """
+    wb = load_workbook(filepath, data_only=True)
+
+    # Try to find 'PL' or 'P&L' sheet
+    ws = None
+    for name in ['PL', 'P&L', 'Profit & Loss', 'Profit and Loss', 'ProfitLoss']:
+        if name in wb.sheetnames:
+            ws = wb[name]
+            break
+    if ws is None:
+        # Check if there's a second sheet
+        if len(wb.sheetnames) > 1:
+            ws = wb.worksheets[1]
+        else:
+            ws = wb.worksheets[0]
+        logger.info("No 'PL' sheet found, using sheet: %s", ws.title)
+
+    client_name = _get_text(ws.cell(row=1, column=1))
+
+    # Find date columns
+    cy_col, py_col, cy_year, py_year, header_row = _find_date_columns(ws)
+    if cy_col is None:
+        raise ValueError("Could not find date header columns in P&L statement.")
+
+    # In sample PL: Col A = Particulars, Col D = Notes
+    part_col = 1   # Column A
+    note_col = 4   # Column D
+
+    data = []
+    start_row = header_row + 1
+
+    for row_idx in range(start_row, ws.max_row + 1):
+        part_text = _get_text(ws.cell(row=row_idx, column=part_col))
+        note_text = _get_text(ws.cell(row=row_idx, column=note_col))
+        cy_val = _get_value(ws.cell(row=row_idx, column=cy_col))
+        py_val = _get_value(ws.cell(row=row_idx, column=py_col))
+        is_bold = _is_bold(ws.cell(row=row_idx, column=part_col))
+
+        if not part_text and cy_val is None and py_val is None:
+            continue
+
+        row_data = {
+            'particulars': part_text,
+            'note': note_text,
+            'cy': cy_val if cy_val is not None else 0,
+            'py': py_val if py_val is not None else 0,
+            'is_bold': is_bold,
+            'row_num': row_idx
+        }
+        data.append(row_data)
+
+    wb.close()
+    logger.info("Parsed PL: %d rows, CY=%d, PY=%d", len(data), cy_year, py_year)
+
+    return {
+        'data': data,
+        'cy_year': cy_year,
+        'py_year': py_year,
+        'client_name': client_name,
+        'cy_col_letter': _col_letter(cy_col),
+        'py_col_letter': _col_letter(py_col)
+    }
+
+
+def parse_notes(filepath):
+    """
+    Parse Notes to Accounts from client Excel file.
+    Handles multiple sheets (3-4, 5-9, 10-17, 18-26) each containing
+    multiple notes with their own headers.
+    
+    Returns:
+        dict mapping sheet_name → list of note groups:
+        {
+            '3-4': [
+                {
+                    'note_num': '3',
+                    'note_heading': 'Property and equipment',
+                    'data': [...],
+                    'is_asset_note': True/False
+                },
+                ...
+            ],
+            ...
+        }
+    """
+    wb = load_workbook(filepath, data_only=True)
+    
+    # Known notes sheet names
+    notes_sheet_names = ['3-4', '5-9', '10-17', '18-26']
+    result = {}
+
+    for sheet_name in notes_sheet_names:
+        if sheet_name not in wb.sheetnames:
+            continue
+        
+        ws = wb[sheet_name]
+        notes_groups = _parse_notes_sheet(ws)
+        if notes_groups:
+            result[sheet_name] = notes_groups
+
+    wb.close()
+    logger.info("Parsed notes from %d sheets", len(result))
+    return result
+
+
+def _parse_notes_sheet(ws):
+    """Parse a single notes sheet, extracting all note groups."""
+    notes = []
+    
+    # Scan for note headings: look for cells with pattern "N <heading>" where N is bold number
+    row = 1
+    while row <= ws.max_row:
+        # Look for note number in col A (bold integer)
+        a_cell = ws.cell(row=row, column=1)
+        b_cell = ws.cell(row=row, column=2)
+        
+        note_num = None
+        note_heading = ''
+        
+        # Check col A for note number
+        if a_cell.value is not None and _is_bold(a_cell):
+            a_val = str(a_cell.value).strip()
+            if re.match(r'^\d+[A-Za-z]?$', a_val):
+                note_num = a_val
+                note_heading = _get_text(b_cell)
+        
+        if note_num is None:
+            row += 1
+            continue
+        
+        # Found a note heading. Now find the date headers below it.
+        cy_col, py_col, cy_year, py_year, date_row = _find_date_columns(
+            ws, search_rows=range(row, min(row + 10, ws.max_row + 1)))
+        
+        if cy_col is None:
+            # No date columns found — try to use standard B/C/D layout from template
+            # Some notes use cols C and D for CY/PY
+            row += 1
+            continue
+        
+        # Detect if this is an asset note (PPE)
+        is_asset_note = any(kw in note_heading.lower() for kw in
+                           ['property', 'plant', 'equipment', 'intangible',
+                            'right of use', 'rou', 'ppe'])
+        
+        # Parse data rows until next note heading or end
+        data_rows = []
+        part_col = 2  # Notes typically use col B for particulars
+        data_start = date_row + 1 if date_row else row + 3
+        
+        for data_row in range(data_start, ws.max_row + 1):
+            # Check if we hit the next note heading
+            next_a = ws.cell(row=data_row, column=1)
+            if next_a.value is not None and _is_bold(next_a):
+                next_val = str(next_a.value).strip()
+                if re.match(r'^\d+[A-Za-z]?$', next_val):
+                    break  # Next note starts here
+            
+            part_text = _get_text(ws.cell(row=data_row, column=part_col))
+            cy_val = _get_value(ws.cell(row=data_row, column=cy_col))
+            py_val = _get_value(ws.cell(row=data_row, column=py_col))
+            is_bold_row = _is_bold(ws.cell(row=data_row, column=part_col))
+            
+            if not part_text and cy_val is None and py_val is None:
+                continue
+            
+            data_rows.append({
+                'particulars': part_text,
+                'cy': cy_val if cy_val is not None else 0,
+                'py': py_val if py_val is not None else 0,
+                'is_bold': is_bold_row,
+                'row_num': data_row
+            })
+            row = data_row
+        
+        notes.append({
+            'note_num': note_num,
+            'note_heading': note_heading,
+            'data': data_rows,
+            'is_asset_note': is_asset_note,
+            'cy_year': cy_year,
+            'py_year': py_year
+        })
+        
+        row += 1
+    
+    return notes
+
+
+def _col_letter(col_idx):
+    """Convert 1-based column index to Excel letter (1='A', 2='B', etc.)."""
+    result = ''
+    while col_idx > 0:
+        col_idx, remainder = divmod(col_idx - 1, 26)
+        result = chr(65 + remainder) + result
+    return result
+
+
+def extract_bs_summary(bs_data):
+    """
+    Extract summary values from parsed BS data for ratio calculations.
+    Returns dict with keys like total_equity_cy, total_ca_cy, etc.
+    """
+    summary = {}
+    
+    def find_value(keyword, match_type='includes'):
+        """Find CY and PY values by keyword match in particulars."""
+        kw = keyword.lower().strip()
+        for row in bs_data:
+            p = row.get('particulars', '').lower().strip()
+            if match_type == 'exact':
+                if p == kw:
+                    return row.get('cy', 0), row.get('py', 0)
+            else:
+                if kw in p:
+                    return row.get('cy', 0), row.get('py', 0)
+        return 0, 0
+
+    def find_liability_by_note(note_num, is_current):
+        """Find liability values by note number and current/non-current section."""
+        cy_total = 0
+        py_total = 0
+        in_current_section = False
+        
+        for row in bs_data:
+            p = row.get('particulars', '').lower().strip()
+            if 'current liabilities' in p and 'non' not in p:
+                in_current_section = True
+            elif 'non current liabilities' in p or 'non-current liabilities' in p:
+                in_current_section = False
+            
+            note = str(row.get('note', '')).strip()
+            if note == note_num and in_current_section == is_current:
+                cy_total += float(row.get('cy', 0) or 0)
+                py_total += float(row.get('py', 0) or 0)
+        
+        return cy_total, py_total
+
+    # Total Equity
+    cy, py = find_value('total equity', 'exact')
+    summary['total_equity_cy'] = cy
+    summary['total_equity_py'] = py
+
+    # Total Current Assets
+    cy, py = find_value('total current assets')
+    summary['total_ca_cy'] = cy
+    summary['total_ca_py'] = py
+
+    # Total Current Liabilities
+    cy, py = find_value('total current liabilities')
+    summary['total_cl_cy'] = cy
+    summary['total_cl_py'] = py
+
+    # Total Non-Current Liabilities
+    cy, py = find_value('total non-current liabilities')
+    if cy == 0 and py == 0:
+        cy, py = find_value('total non current liabilities')
+    summary['total_ncl_cy'] = cy
+    summary['total_ncl_py'] = py
+
+    # LTB (Long-Term Borrowings): Non-current Preference shares + Lease liabilities
+    ltb_pref_cy, ltb_pref_py = find_liability_by_note('11', False)
+    ltb_lease_cy, ltb_lease_py = find_liability_by_note('12', False)
+    summary['ltb_cy'] = ltb_pref_cy + ltb_lease_cy
+    summary['ltb_py'] = ltb_pref_py + ltb_lease_py
+
+    # STB (Short-Term Borrowings): Current Preference shares + Lease liabilities
+    stb_pref_cy, stb_pref_py = find_liability_by_note('11', True)
+    stb_lease_cy, stb_lease_py = find_liability_by_note('12', True)
+    summary['stb_cy'] = stb_pref_cy + stb_lease_cy
+    summary['stb_py'] = stb_pref_py + stb_lease_py
+
+    # Trade Receivables (Debtors)
+    cy, py = find_value('trade receivables')
+    summary['debtors_cy'] = cy
+    summary['debtors_py'] = py
+
+    return summary
+
+
+def extract_pl_summary(pl_data):
+    """
+    Extract summary values from parsed PL data for ratio calculations.
+    """
+    summary = {}
+
+    def find_value(keyword, match_type='includes'):
+        kw = keyword.lower().strip()
+        for row in pl_data:
+            p = row.get('particulars', '').lower().strip()
+            if match_type == 'exact':
+                if p == kw:
+                    return row.get('cy', 0), row.get('py', 0)
+            else:
+                if kw in p:
+                    return row.get('cy', 0), row.get('py', 0)
+        return 0, 0
+
+    # Revenue from Operations — look for "software services" or the sub-item
+    cy, py = find_value('software services')
+    if cy == 0 and py == 0:
+        cy, py = find_value('revenue from operations')
+    summary['revenue_ops_cy'] = cy
+    summary['revenue_ops_py'] = py
+
+    # Total Income
+    cy, py = find_value('total income')
+    summary['total_revenue_cy'] = cy
+    summary['total_revenue_py'] = py
+
+    # Profit Before Tax
+    cy, py = find_value('profit')
+    # Try more specific match
+    for row in pl_data:
+        p = row.get('particulars', '').lower().strip()
+        if 'profit' in p and 'before' in p and 'tax' in p:
+            summary['pbt_cy'] = row.get('cy', 0)
+            summary['pbt_py'] = row.get('py', 0)
+            break
+    else:
+        summary['pbt_cy'] = cy
+        summary['pbt_py'] = py
+
+    # Finance Charges/Cost
+    cy, py = find_value('finance charge')
+    if cy == 0 and py == 0:
+        cy, py = find_value('finance cost')
+    summary['finance_cost_cy'] = cy
+    summary['finance_cost_py'] = py
+
+    return summary
