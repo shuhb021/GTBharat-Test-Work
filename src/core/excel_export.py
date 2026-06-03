@@ -2,10 +2,19 @@
 FAR Automation Tool — Excel Export
 Generates the final FAR workbook with all sheets, cross-sheet formulas,
 formatting, and styling using openpyxl.
+
+NOTE ON FORMULA EVALUATION:
+openpyxl does not evaluate Excel formulas when saving — cells with formula
+strings remain blank until Excel opens and recalculates the file.
+To guarantee all values are visible immediately on open, this module writes
+PRE-COMPUTED Python values (not formula strings) for all variance and
+ratio columns. The values are taken directly from the variance/ratio dicts
+that were already computed by the cpp_bridge module.
 """
 
 import os
 import logging
+import math
 from datetime import datetime
 
 from openpyxl import Workbook
@@ -42,6 +51,7 @@ ALIGN_CENTER = Alignment(horizontal='center', vertical='center', wrap_text=True)
 ALIGN_LEFT = Alignment(horizontal='left', vertical='center', wrap_text=True)
 ALIGN_RIGHT = Alignment(horizontal='right', vertical='center')
 NUMBER_FORMAT = '#,##0'
+NUMBER_FORMAT_2DP = '#,##0.00'
 PCT_FORMAT = '0.0%'
 
 
@@ -58,7 +68,7 @@ def _write_legends(ws, start_row, start_col, legends, cy_year, py_year):
         ('b', f'Traced to Financials for the year ended 31 March {cy_year}'),
         ('e', 'Recomputed'),
     ]
-    
+
     ws.cell(row=start_row, column=start_col, value='Legends').font = FONT_LEGEND_KEY
     for i, (key, desc) in enumerate(legend_items):
         r = start_row + 1 + i
@@ -75,7 +85,7 @@ def _write_notes_legends(ws, start_row, start_col, cy_year, py_year):
         ('e', 'Recomputed'),
         ('h', 'Immaterial. Hence ignored'),
     ]
-    
+
     ws.cell(row=start_row, column=start_col, value='Legend:').font = FONT_LEGEND_KEY
     for i, (key, desc) in enumerate(legend_items):
         r = start_row + 1 + i
@@ -92,28 +102,45 @@ def _apply_data_row_style(ws, row_idx, max_col, row_data, variance_pct_col, vari
     for col in range(1, max_col + 1):
         cell = ws.cell(row=row_idx, column=col)
         cell.border = THIN_BORDER
-        
+
         if is_bold:
             cell.font = FONT_BOLD
             cell.fill = FILL_LIGHT
         else:
             cell.font = FONT_NORMAL
-        
+
         if flag:
             cell.fill = FILL_YELLOW
             cell.font = Font(name='Garamond', size=12, color='000000',
                            bold=is_bold)
-    
+
     # Color the variance % cell
     if variance_pct is not None and variance_pct_col:
         pct_cell = ws.cell(row=row_idx, column=variance_pct_col)
-        if isinstance(variance_pct, (int, float)):
+        if isinstance(variance_pct, (int, float)) and not math.isnan(variance_pct):
             if variance_pct > 0:
                 pct_cell.font = Font(name='Garamond', size=12, color='22C55E',
                                     bold=is_bold)
             elif variance_pct < 0:
                 pct_cell.font = Font(name='Garamond', size=12, color='EF4444',
-                                    bold=is_bold)
+                                     bold=is_bold)
+
+
+def _safe_pct_value(variance_pct):
+    """
+    Convert a variance_pct value (0-100 scale from cpp_bridge) to a decimal
+    suitable for Excel percentage formatting (e.g. 15.5 → 0.155).
+    Handles None, inf, nan gracefully.
+    """
+    if variance_pct is None:
+        return None
+    try:
+        v = float(variance_pct)
+        if math.isinf(v) or math.isnan(v):
+            return None
+        return v / 100.0
+    except (TypeError, ValueError):
+        return None
 
 
 def export_far_workbook(output_path, bs_result, pl_result, notes_result,
@@ -122,7 +149,7 @@ def export_far_workbook(output_path, bs_result, pl_result, notes_result,
                         rounding_unit, cy_year, py_year):
     """
     Generate the complete FAR workbook.
-    
+
     Args:
         output_path: str — full path for output .xlsx file
         bs_result: list of BS data dicts (with variance data)
@@ -135,13 +162,17 @@ def export_far_workbook(output_path, bs_result, pl_result, notes_result,
         cy_year, py_year: int
     """
     wb = Workbook()
-    
+
+    # Force Excel to recalculate all formulas on open (belt-and-suspenders)
+    wb.calculation.calcMode = 'auto'
+    wb.calculation.fullCalcOnLoad = True
+
     # ── Sheet 1: Cover ──
     ws_cover = wb.active
     ws_cover.title = 'Cover'
     _write_cover_sheet(ws_cover, client_name, firm_name, financial_year,
                        rounding_unit, cy_year, py_year)
-    
+
     # ── Sheet 2: BS ──
     ws_bs = wb.create_sheet('BS')
     bs_row_map = _write_analysis_sheet(
@@ -151,7 +182,7 @@ def export_far_workbook(output_path, bs_result, pl_result, notes_result,
         date_prefix='As at',
         note_col_header='Note number'
     )
-    
+
     # ── Sheet 3: PL ──
     ws_pl = wb.create_sheet('PL')
     pl_row_map = _write_analysis_sheet(
@@ -161,24 +192,24 @@ def export_far_workbook(output_path, bs_result, pl_result, notes_result,
         date_prefix='For the Year ended',
         note_col_header='Note number'
     )
-    
+
     # ── Sheets 4-7: Notes ──
     for sheet_name in ['3-4', '5-9', '10-17', '18-26']:
         if sheet_name in notes_result:
             ws_notes = wb.create_sheet(sheet_name)
             _write_notes_sheet(ws_notes, notes_result[sheet_name],
                              client_name, cy_year, py_year, rounding_unit)
-    
+
     # ── Sheet 8: Ratio Analysis ──
     ws_ratio = wb.create_sheet('Ratio Analysis')
     _write_ratio_sheet(ws_ratio, ratios, client_name, cy_year, py_year,
                        bs_row_map, pl_row_map)
-    
+
     # ── Sheet 9: Dashboard ──
     ws_dash = wb.create_sheet('Dashboard')
     _write_dashboard_sheet(ws_dash, bs_result, pl_result, ratios,
                           client_name, cy_year, py_year, rounding_unit)
-    
+
     # Save
     wb.save(output_path)
     logger.info("FAR workbook saved to %s", output_path)
@@ -189,14 +220,14 @@ def _write_cover_sheet(ws, client_name, firm_name, financial_year,
                        rounding_unit, cy_year, py_year):
     """Write the cover/index sheet."""
     _set_col_widths(ws, {'A': 5, 'B': 40, 'C': 30})
-    
+
     ws.cell(row=2, column=2, value=firm_name).font = FONT_TITLE
     ws.cell(row=4, column=2, value='Final Analytical Review Workpaper').font = FONT_SUBTITLE
     ws.cell(row=6, column=2, value=f'Client: {client_name}').font = FONT_HEADER
     ws.cell(row=7, column=2, value=f'Financial Year: {financial_year}').font = FONT_NORMAL
     ws.cell(row=8, column=2, value=f'Period: 31 March {py_year} to 31 March {cy_year}').font = FONT_NORMAL
     ws.cell(row=9, column=2, value=f'Amounts in: {rounding_unit}').font = FONT_NORMAL
-    
+
     # Index
     ws.cell(row=11, column=2, value='Index of Sheets').font = FONT_SUBTITLE
     sheets = [
@@ -213,50 +244,53 @@ def _write_cover_sheet(ws, client_name, firm_name, financial_year,
         r = 13 + i
         ws.cell(row=r, column=2, value=f'{i+1}. {desc}').font = FONT_NORMAL
         ws.cell(row=r, column=3, value=sheet).font = FONT_LEGEND
-    
-    ws.cell(row=23, column=2, 
+
+    ws.cell(row=23, column=2,
             value=f'Generated on: {datetime.now().strftime("%d %B %Y, %H:%M")}').font = FONT_LEGEND
 
 
 def _write_analysis_sheet(ws, data, remarks, client_name, cy_year, py_year,
                           rounding_unit, title, date_prefix, note_col_header):
     """
-    Write BS or PL analysis sheet with formulas.
+    Write BS or PL analysis sheet with PRE-COMPUTED variance values.
+    Variance columns use actual calculated numbers — NOT formula strings —
+    so the file opens with all values visible immediately.
+
     Returns a dict mapping particulars (lowercase) → Excel row number for cross-referencing.
     """
     _set_col_widths(ws, {
         'A': 40, 'B': 12, 'C': 16, 'D': 16, 'E': 16, 'F': 12, 'G': 45
     })
-    
+
     # Header section
     ws.cell(row=1, column=1, value='Client:').font = FONT_HEADER
     ws.cell(row=1, column=3, value=client_name).font = FONT_HEADER
     ws.cell(row=2, column=1, value=title).font = FONT_SUBTITLE
-    ws.cell(row=3, column=1, 
+    ws.cell(row=3, column=1,
             value=f'{date_prefix} 31 March {cy_year} vs 31 March {py_year}').font = FONT_NORMAL
     ws.cell(row=4, column=1,
             value=f'(Rs. In {rounding_unit})').font = FONT_LEGEND
-    
+
     # Legends
     _write_legends(ws, 1, 6, None, cy_year, py_year)
-    
+
     ws.cell(row=6, column=1,
             value='Scope: All variances above TE and (+/-) 10% have been selected for analysis').font = FONT_LEGEND
-    
+
     # Column headers row 7
     headers_legend = [('', ''), ('', ''), ('b', ''), ('a', ''), ('e', ''), ('e', ''), ('', '')]
     for i, (legend, _) in enumerate(headers_legend):
         if legend:
             ws.cell(row=7, column=i + 1, value=legend).font = FONT_LEGEND_KEY
             ws.cell(row=7, column=i + 1).alignment = ALIGN_CENTER
-    
+
     # Column headers row 8
     col_headers = [
         'Particulars', note_col_header,
         f'{date_prefix}\n31 March {cy_year}',
         f'{date_prefix}\n31 March {py_year}',
-        'Variance\n(Absolute)' if 'As at' in date_prefix else 'Absolute Variance', 
-        'Variance %' if 'As at' in date_prefix else 'Variance \n%', 
+        'Variance\n(Absolute)' if 'As at' in date_prefix else 'Absolute Variance',
+        'Variance %' if 'As at' in date_prefix else 'Variance \n%',
         'Remarks'
     ]
     for i, h in enumerate(col_headers):
@@ -265,70 +299,86 @@ def _write_analysis_sheet(ws, data, remarks, client_name, cy_year, py_year,
         cell.fill = FILL_HEADER
         cell.alignment = ALIGN_CENTER
         cell.border = THIN_BORDER
-    
+
     # Freeze panes below header
     ws.freeze_panes = 'A9'
-    
-    # Data rows
+
+    # Data rows — using pre-computed values from variance dicts
     row_map = {}  # particulars → excel row number
     for idx, row_data in enumerate(data):
         excel_row = 9 + idx
-        
+
         # Store mapping for cross-sheet references
         p_lower = row_data.get('particulars', '').lower().strip()
         if p_lower:
             row_map[p_lower] = excel_row
-        
+
         # Write data
         ws.cell(row=excel_row, column=1, value=row_data.get('particulars', ''))
         ws.cell(row=excel_row, column=2, value=row_data.get('note', ''))
-        
+
         cy_val = row_data.get('cy', 0)
         py_val = row_data.get('py', 0)
         ws.cell(row=excel_row, column=3, value=cy_val)
         ws.cell(row=excel_row, column=4, value=py_val)
-        
-        # Variance formulas (not hardcoded values)
-        ws.cell(row=excel_row, column=5).value = f'=C{excel_row}-D{excel_row}'
-        ws.cell(row=excel_row, column=6).value = f'=IF(D{excel_row}=0,0,(C{excel_row}-D{excel_row})/ABS(D{excel_row}))'
-        
+
+        # ── Pre-computed variance values (NOT formula strings) ──
+        # This ensures values are visible immediately when the file is opened.
+        variance_abs = row_data.get('variance_abs', None)
+        variance_pct = row_data.get('variance_pct', None)  # stored as 0–100 scale
+
+        # Compute fallback if not in dict (shouldn't happen after cpp_bridge)
+        if variance_abs is None:
+            cy_f = float(cy_val or 0)
+            py_f = float(py_val or 0)
+            variance_abs = cy_f - py_f
+            variance_pct = 0.0 if py_f == 0 else ((variance_abs / abs(py_f)) * 100.0)
+
+        abs_cell = ws.cell(row=excel_row, column=5)
+        abs_cell.value = round(variance_abs, 0) if variance_abs is not None else 0
+
+        # Convert pct from 0-100 scale to 0.0-1.0 for Excel PCT_FORMAT
+        pct_decimal = _safe_pct_value(variance_pct)
+        pct_cell = ws.cell(row=excel_row, column=6)
+        pct_cell.value = pct_decimal  # may be None — Excel will show blank, not error
+
         # Number formatting
         for col in [3, 4, 5]:
             ws.cell(row=excel_row, column=col).number_format = NUMBER_FORMAT
-        ws.cell(row=excel_row, column=6).number_format = PCT_FORMAT
-        
+        pct_cell.number_format = PCT_FORMAT
+
         # Remarks
         remark = remarks.get(idx, row_data.get('remark', ''))
         ws.cell(row=excel_row, column=7, value=remark)
-        
+
         # Styling
         _apply_data_row_style(ws, excel_row, 7, row_data, 6, 5)
-    
+
     return row_map
 
 
 def _write_notes_sheet(ws, notes_groups, client_name, cy_year, py_year, rounding_unit):
-    """Write a notes analysis sheet."""
+    """Write a notes analysis sheet with pre-computed variance values."""
     _set_col_widths(ws, {
         'A': 5, 'B': 40, 'C': 16, 'D': 16, 'E': 16, 'F': 12, 'G': 45,
         'H': 5, 'I': 50
     })
-    
+
     # Header
     ws.cell(row=1, column=1, value='Client:').font = FONT_HEADER
     ws.cell(row=1, column=3, value=client_name).font = FONT_HEADER
     ws.cell(row=2, column=1, value='Analysis of Notes to Accounts').font = FONT_SUBTITLE
-    
+
     # Legends
     _write_notes_legends(ws, 1, 8, cy_year, py_year)
-    
+
     current_row = 8
-    
+
     for note_group in notes_groups:
         # Note heading
         heading = f"Note {note_group['note_num']}: {note_group['note_heading']}"
         ws.cell(row=current_row, column=2, value=heading).font = FONT_SUBTITLE
-        
+
         # Sub-headers
         current_row += 1
         sub_headers = ['', 'Particulars', f'As at 31st March {cy_year}',
@@ -339,41 +389,51 @@ def _write_notes_sheet(ws, notes_groups, client_name, cy_year, py_year, rounding
             cell.fill = FILL_HEADER
             cell.alignment = ALIGN_CENTER
             cell.border = THIN_BORDER
-        
+
         # Legend row
         ws.cell(row=current_row - 1, column=3, value='a').font = FONT_LEGEND_KEY
         ws.cell(row=current_row - 1, column=4, value='b').font = FONT_LEGEND_KEY
         ws.cell(row=current_row - 1, column=5, value='e').font = FONT_LEGEND_KEY
-        
+
         current_row += 1
-        
-        # Data rows
+
+        # Data rows — pre-computed variance values
         for row_data in note_group.get('data', []):
+            cy_val = row_data.get('cy', 0)
+            py_val = row_data.get('py', 0)
             ws.cell(row=current_row, column=2, value=row_data.get('particulars', ''))
-            ws.cell(row=current_row, column=3, value=row_data.get('cy', 0))
-            ws.cell(row=current_row, column=4, value=row_data.get('py', 0))
-            
-            # Variance formulas
-            ws.cell(row=current_row, column=5).value = f'=C{current_row}-D{current_row}'
-            ws.cell(row=current_row, column=6).value = f'=IF(D{current_row}=0,0,(C{current_row}-D{current_row})/ABS(D{current_row}))'
-            
+            ws.cell(row=current_row, column=3, value=cy_val)
+            ws.cell(row=current_row, column=4, value=py_val)
+
+            # ── Pre-computed variance (not formula strings) ──
+            cy_f = float(cy_val or 0)
+            py_f = float(py_val or 0)
+            variance_abs = cy_f - py_f
+            if py_f == 0:
+                variance_pct_decimal = None  # no prior year — leave blank
+            else:
+                variance_pct_decimal = (variance_abs / abs(py_f))
+
+            ws.cell(row=current_row, column=5).value = round(variance_abs, 0)
+            ws.cell(row=current_row, column=6).value = variance_pct_decimal
+
             for col in [3, 4, 5]:
                 ws.cell(row=current_row, column=col).number_format = NUMBER_FORMAT
             ws.cell(row=current_row, column=6).number_format = PCT_FORMAT
-            
+
             _apply_data_row_style(ws, current_row, 7, row_data, 6, 5)
             current_row += 1
-        
+
         current_row += 2  # Gap between note groups
 
 
 def _write_ratio_sheet(ws, ratios, client_name, cy_year, py_year,
                        bs_row_map, pl_row_map):
-    """Write the Ratio Analysis sheet with cross-sheet formula links."""
+    """Write the Ratio Analysis sheet with pre-computed values."""
     _set_col_widths(ws, {
-        'A': 5, 'B': 35, 'C': 40, 'D': 16, 'E': 16, 'F': 14, 'G': 45
+        'A': 5, 'B': 35, 'C': 45, 'D': 16, 'E': 16, 'F': 14, 'G': 45
     })
-    
+
     # Header
     ws.cell(row=1, column=2, value='Client:').font = FONT_HEADER
     ws.cell(row=1, column=3, value=client_name).font = FONT_HEADER
@@ -382,7 +442,7 @@ def _write_ratio_sheet(ws, ratios, client_name, cy_year, py_year,
             value=f'As at 31 March {cy_year} vs 31 March {py_year}').font = FONT_NORMAL
     ws.cell(row=5, column=2,
             value='Scope: Percentage variance of +/- 10% have been selected for analysis').font = FONT_LEGEND
-    
+
     # Column headers
     headers = ['', 'KEY METRIC', 'FORMULA', f'{cy_year}-{str(cy_year+1)[-2:]} (CY)',
                f'{py_year}-{str(py_year+1)[-2:]} (PY)', 'CHANGE (%)', 'REMARKS']
@@ -392,29 +452,35 @@ def _write_ratio_sheet(ws, ratios, client_name, cy_year, py_year,
         cell.fill = FILL_HEADER
         cell.alignment = ALIGN_CENTER
         cell.border = THIN_BORDER
-    
+
     ws.freeze_panes = 'A8'
-    
-    # Ratio data rows
+
+    # Ratio data rows — all values pre-computed
     for idx, ratio in enumerate(ratios):
         excel_row = 8 + idx
-        
+
         ws.cell(row=excel_row, column=2, value=ratio['key']).font = FONT_BOLD
         ws.cell(row=excel_row, column=3, value=ratio['formula']).font = FONT_NORMAL
-        ws.cell(row=excel_row, column=4, value=ratio.get('cy', 0))
-        ws.cell(row=excel_row, column=5, value=ratio.get('py', 0))
-        
-        # Change % formula
-        ws.cell(row=excel_row, column=6).value = f'=IF(E{excel_row}=0,0,(D{excel_row}-E{excel_row})/ABS(E{excel_row}))'
-        
-        ws.cell(row=excel_row, column=4).number_format = '#,##0.00'
-        ws.cell(row=excel_row, column=5).number_format = '#,##0.00'
-        ws.cell(row=excel_row, column=6).number_format = PCT_FORMAT
-        
+
+        cy_val = ratio.get('cy', 0)
+        py_val = ratio.get('py', 0)
+        ws.cell(row=excel_row, column=4, value=cy_val)
+        ws.cell(row=excel_row, column=5, value=py_val)
+
+        # ── Pre-computed change % (not formula string) ──
+        change = ratio.get('change', None)  # already a % (e.g. 15.5 = 15.5%)
+        change_decimal = _safe_pct_value(change)
+        change_cell = ws.cell(row=excel_row, column=6)
+        change_cell.value = change_decimal
+
+        ws.cell(row=excel_row, column=4).number_format = NUMBER_FORMAT_2DP
+        ws.cell(row=excel_row, column=5).number_format = NUMBER_FORMAT_2DP
+        change_cell.number_format = PCT_FORMAT
+
         # Styling
         for col in range(1, 8):
             ws.cell(row=excel_row, column=col).border = THIN_BORDER
-        
+
         flag = ratio.get('flag', False)
         if flag:
             for col in range(1, 8):
@@ -422,25 +488,24 @@ def _write_ratio_sheet(ws, ratios, client_name, cy_year, py_year,
                 ws.cell(row=excel_row, column=col).font = Font(
                     name='Garamond', size=12, color='000000',
                     bold=(col == 2))
-        
-        # Color variance
-        change = ratio.get('change', 0)
-        change_cell = ws.cell(row=excel_row, column=6)
-        if change > 0:
-            change_cell.font = Font(name='Garamond', size=12, color='22C55E')
-        elif change < 0:
-            change_cell.font = Font(name='Garamond', size=12, color='EF4444')
+
+        # Color change cell
+        if change is not None:
+            if change > 0:
+                change_cell.font = Font(name='Garamond', size=12, color='22C55E')
+            elif change < 0:
+                change_cell.font = Font(name='Garamond', size=12, color='EF4444')
 
 
 def _write_dashboard_sheet(ws, bs_data, pl_data, ratios,
                           client_name, cy_year, py_year, rounding_unit):
-    """Write the dashboard summary sheet."""
+    """Write the dashboard summary sheet with pre-computed variance values."""
     _set_col_widths(ws, {'A': 5, 'B': 30, 'C': 18, 'D': 18, 'E': 18})
-    
+
     ws.cell(row=1, column=2, value='Key Metrics Dashboard').font = FONT_TITLE
     ws.cell(row=2, column=2, value=f'{client_name} — FY {cy_year}').font = FONT_SUBTITLE
     ws.cell(row=3, column=2, value=f'(Rs. in {rounding_unit})').font = FONT_LEGEND
-    
+
     # Summary metrics table
     headers = ['', 'Metric', f'CY ({cy_year})', f'PY ({py_year})', 'Variance']
     for i, h in enumerate(headers):
@@ -448,50 +513,61 @@ def _write_dashboard_sheet(ws, bs_data, pl_data, ratios,
         cell.font = FONT_HEADER
         cell.fill = FILL_HEADER
         cell.border = THIN_BORDER
-    
+
     # Key metrics from PL
     def find_val(data, keyword):
         for row in data:
             if keyword.lower() in row.get('particulars', '').lower():
                 return row.get('cy', 0), row.get('py', 0)
         return 0, 0
-    
+
     metrics = [
         ('Total Revenue', *find_val(pl_data, 'total income')),
         ('Total Expenses', *find_val(pl_data, 'total expense')),
-        ('Profit Before Tax', *find_val(pl_data, 'profit')),
+        ('Profit Before Tax', *find_val(pl_data, 'profit before tax')),
         ('Total Assets', *find_val(bs_data, 'total assets')),
         ('Total Equity', *find_val(bs_data, 'total equity')),
         ('Total Current Assets', *find_val(bs_data, 'total current assets')),
         ('Total Current Liabilities', *find_val(bs_data, 'total current liabilities')),
     ]
-    
+
     for idx, (name, cy, py) in enumerate(metrics):
         r = 6 + idx
         ws.cell(row=r, column=2, value=name).font = FONT_BOLD
-        ws.cell(row=r, column=3, value=cy).number_format = NUMBER_FORMAT
-        ws.cell(row=r, column=4, value=py).number_format = NUMBER_FORMAT
-        ws.cell(row=r, column=5).value = f'=C{r}-D{r}'
-        ws.cell(row=r, column=5).number_format = NUMBER_FORMAT
+
+        cy_f = float(cy or 0)
+        py_f = float(py or 0)
+        ws.cell(row=r, column=3, value=cy_f).number_format = NUMBER_FORMAT
+        ws.cell(row=r, column=4, value=py_f).number_format = NUMBER_FORMAT
+
+        # Pre-computed variance (not formula string)
+        variance = cy_f - py_f
+        ws.cell(row=r, column=5, value=variance).number_format = NUMBER_FORMAT
+
         for col in range(1, 6):
             ws.cell(row=r, column=col).border = THIN_BORDER
-    
+
     # Ratio summary
     ratio_start = 6 + len(metrics) + 2
     ws.cell(row=ratio_start, column=2, value='Key Ratios').font = FONT_SUBTITLE
-    
+
     ratio_headers = ['', 'Ratio', 'CY', 'PY', 'Change %']
     for i, h in enumerate(ratio_headers):
         cell = ws.cell(row=ratio_start + 1, column=i + 1, value=h)
         cell.font = FONT_HEADER
         cell.fill = FILL_HEADER
         cell.border = THIN_BORDER
-    
+
     for idx, ratio in enumerate(ratios):
         r = ratio_start + 2 + idx
         ws.cell(row=r, column=2, value=ratio['key']).font = FONT_NORMAL
-        ws.cell(row=r, column=3, value=ratio.get('cy', 0)).number_format = '#,##0.00'
-        ws.cell(row=r, column=4, value=ratio.get('py', 0)).number_format = '#,##0.00'
-        ws.cell(row=r, column=5, value=ratio.get('display_change', '')).font = FONT_NORMAL
+        ws.cell(row=r, column=3, value=ratio.get('cy', 0)).number_format = NUMBER_FORMAT_2DP
+        ws.cell(row=r, column=4, value=ratio.get('py', 0)).number_format = NUMBER_FORMAT_2DP
+
+        # Pre-computed change decimal for PCT_FORMAT
+        change = ratio.get('change', None)
+        change_decimal = _safe_pct_value(change)
+        ws.cell(row=r, column=5, value=change_decimal).number_format = PCT_FORMAT
+
         for col in range(1, 6):
             ws.cell(row=r, column=col).border = THIN_BORDER

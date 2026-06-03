@@ -302,6 +302,7 @@ class MainWindow(QMainWindow):
                 parse_balance_sheet, parse_profit_loss, parse_notes
             )
             from src.core.cpp_bridge import compute_variances, compute_ratios_from_raw
+            from src.core.validation import validate_far_data
             
             bs_parsed = parse_balance_sheet(form_data['bs_file'])
             
@@ -311,6 +312,13 @@ class MainWindow(QMainWindow):
             QApplication.processEvents()
             
             pl_parsed = parse_profit_loss(form_data['pl_file'])
+            
+            if bs_parsed['cy_year'] != pl_parsed['cy_year']:
+                progress.close()
+                QMessageBox.warning(self, 'Year Mismatch',
+                    f"BS year ({bs_parsed['cy_year']}) and P&L year ({pl_parsed['cy_year']}) don't match!\n"
+                    "Please check your files.")
+                return
             
             # Step 3: Parse Notes
             notes_result = {}
@@ -338,8 +346,18 @@ class MainWindow(QMainWindow):
             
             raw_ratios_result = compute_ratios_from_raw(bs_parsed['data'], pl_parsed['data'])
             ratios = raw_ratios_result.get('ratios', [])
-            # bs_summary = raw_ratios_result.get('bs_summary', {})
-            # pl_summary = raw_ratios_result.get('pl_summary', {})
+            bs_summary = raw_ratios_result.get('bs_summary', {})
+            pl_summary = raw_ratios_result.get('pl_summary', {})
+            
+            # Step 5b: Run validation layer
+            progress.setLabelText('🔍 Validating data...')
+            progress.setValue(70)
+            QApplication.processEvents()
+            
+            validation_report = validate_far_data(
+                bs_parsed['data'], pl_parsed['data'],
+                bs_summary, pl_summary, ratios
+            )
             
             # Step 6: Store results
             progress.setLabelText('📊 Building views...')
@@ -348,7 +366,14 @@ class MainWindow(QMainWindow):
             
             cy_year = bs_parsed.get('cy_year', 2025)
             py_year = bs_parsed.get('py_year', 2024)
-            client_name = form_data.get('client_name', bs_parsed.get('client_name', ''))
+            
+            # Use form input client name; fall back to auto-extracted name from workbook
+            form_client_name = form_data.get('client_name', '').strip()
+            parsed_client_name = bs_parsed.get('client_name', '').strip()
+            client_name = form_client_name if form_client_name else parsed_client_name
+            if not form_client_name and parsed_client_name:
+                logger.info("Using auto-extracted client name: %s", parsed_client_name)
+            
             rounding_unit = form_data.get('rounding_unit', 'Lakhs')
             
             self.app_data.update({
@@ -364,6 +389,7 @@ class MainWindow(QMainWindow):
                 'rounding_unit': rounding_unit,
                 'remarks_bs': {},
                 'remarks_pl': {},
+                'validation_report': validation_report,
             })
             
             # Load data into views
@@ -380,16 +406,22 @@ class MainWindow(QMainWindow):
             progress.setValue(100)
             QApplication.processEvents()
             
-            # Update status bar
+            # Update status bar with validation summary
+            val_summary = validation_report.summary_text()
             self.status_items.setText(
-                f'BS: {len(bs_result)} items  |  PL: {len(pl_result)} items')
+                f'BS: {len(bs_result)} items  |  PL: {len(pl_result)} items  |  {val_summary}')
             self.status_bar.showMessage('FAR generated successfully', 5000)
             
             # Switch to BS view
             self.sidebar.set_active_module(1)
             
-            # Toast
-            self.toast.show_toast('✓ FAR generated successfully!', 'success')
+            # Toast — show validation result
+            if validation_report.has_failures:
+                self.toast.show_toast(
+                    f'⚠ FAR generated — {len(validation_report.failed)} validation issue(s) detected',
+                    'warning', 6000)
+            else:
+                self.toast.show_toast('✓ FAR generated successfully!', 'success')
             
             logger.info("FAR generated: BS=%d rows, PL=%d rows, Ratios=%d",
                         len(bs_result), len(pl_result), len(ratios))

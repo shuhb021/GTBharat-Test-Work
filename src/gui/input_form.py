@@ -196,6 +196,7 @@ class InputForm(QWidget):
         files_layout.setContentsMargins(16, 20, 16, 16)
         
         self.bs_upload = FileUploadPanel('Balance Sheet File')
+        self.bs_upload.fileSelected.connect(self._auto_fill_client_name)
         files_layout.addWidget(self.bs_upload)
         
         self.pl_upload = FileUploadPanel('Profit & Loss File')
@@ -273,6 +274,43 @@ class InputForm(QWidget):
         self.error_label.setText('')
         return True
     
+    def _auto_fill_client_name(self, filepath):
+        """
+        Automatically populate the Client Name field from the selected BS workbook.
+        Scans the first 5 rows of columns A-C to find the company name.
+        Only fills if the field is currently empty (does not overwrite user input).
+        """
+        if self.client_name.text().strip():
+            return  # Don't overwrite if user already typed something
+        try:
+            from openpyxl import load_workbook as _load_wb
+            wb = _load_wb(filepath, data_only=True, read_only=True)
+            ws = wb.worksheets[0]
+            # Try to find 'BS' sheet
+            for name in ['BS', 'Balance Sheet', 'BalanceSheet']:
+                if name in wb.sheetnames:
+                    ws = wb[name]
+                    break
+            extracted = ''
+            for row_idx in range(1, 6):
+                for col_idx in range(1, 4):
+                    cell_val = ws.cell(row=row_idx, column=col_idx).value
+                    if cell_val and isinstance(cell_val, str) and len(cell_val.strip()) > 3:
+                        extracted = cell_val.strip()
+                        break
+                if extracted:
+                    break
+            wb.close()
+            if extracted:
+                self.client_name.setText(extracted)
+                import logging
+                logging.getLogger(__name__).info(
+                    "Auto-filled client name from workbook: %s", extracted)
+        except Exception as e:
+            import logging
+            logging.getLogger(__name__).warning(
+                "Could not auto-fill client name from workbook: %s", e)
+
     def _on_generate(self):
         """Handle Generate button click."""
         if not self._validate():

@@ -78,10 +78,32 @@ def _find_date_columns(ws, search_rows=range(5, 12)):
     return cy_col, py_col, cy_year, py_year, header_row
 
 
+def _extract_client_name(ws):
+    """
+    Scan the first 5 rows of column A for a non-empty text cell that looks like
+    a company name. Returns the first non-empty string found.
+    """
+    for row_idx in range(1, 6):
+        text = _get_text(ws.cell(row=row_idx, column=1))
+        if text and len(text) > 3:
+            logger.info("Client name extracted from row %d: %s", row_idx, text)
+            return text
+    # Also check first few merged-cell rows in column B if A is blank
+    for row_idx in range(1, 6):
+        for col_idx in range(1, 4):
+            text = _get_text(ws.cell(row=row_idx, column=col_idx))
+            if text and len(text) > 3:
+                logger.info("Client name extracted from row %d col %d: %s",
+                            row_idx, col_idx, text)
+                return text
+    logger.warning("Could not extract client name from workbook — field may be in a merged cell")
+    return ''
+
+
 def parse_balance_sheet(filepath):
     """
     Parse Balance Sheet from client Excel file.
-    
+
     Expected structure (from sample):
     - Row 1: Client name
     - Row 3: "Balance Sheet as at 31 March YYYY"
@@ -89,7 +111,7 @@ def parse_balance_sheet(filepath):
     - Col A: Particulars
     - Col C: Note numbers
     - Data from "Assets" row to "Total equity and liabilities" row
-    
+
     Returns:
         dict with keys:
             'data': list of row dicts
@@ -98,7 +120,7 @@ def parse_balance_sheet(filepath):
             'client_name': str
     """
     wb = load_workbook(filepath, data_only=True)
-    
+
     # Try to find 'BS' sheet or first sheet
     ws = None
     for name in ['BS', 'Balance Sheet', 'BalanceSheet']:
@@ -109,8 +131,8 @@ def parse_balance_sheet(filepath):
         ws = wb.worksheets[0]
         logger.info("No 'BS' sheet found, using first sheet: %s", ws.title)
 
-    # Get client name from A1
-    client_name = _get_text(ws.cell(row=1, column=1))
+    # Get client name — enhanced scan across first 5 rows
+    client_name = _extract_client_name(ws)
 
     # Find date columns
     cy_col, py_col, cy_year, py_year, header_row = _find_date_columns(ws)
@@ -130,11 +152,11 @@ def parse_balance_sheet(filepath):
 
     for row_idx in range(start_row, ws.max_row + 1):
         part_text = _get_text(ws.cell(row=row_idx, column=part_col))
-        
+
         # Start parsing when we find "Assets"
         if not in_data and part_text.lower().strip() in ('assets', 'asset'):
             in_data = True
-        
+
         if not in_data:
             continue
 
@@ -178,13 +200,13 @@ def parse_balance_sheet(filepath):
 def parse_profit_loss(filepath):
     """
     Parse Profit & Loss statement from client Excel file.
-    
+
     Expected structure (from sample):
     - Col A: Particulars
     - Col D: Note numbers
     - Col E: CY values, Col G: PY values (row 7 has dates)
     - Data from "Revenue from operations" to end
-    
+
     Returns:
         dict with keys: 'data', 'cy_year', 'py_year', 'client_name'
     """
@@ -204,7 +226,7 @@ def parse_profit_loss(filepath):
             ws = wb.worksheets[0]
         logger.info("No 'PL' sheet found, using sheet: %s", ws.title)
 
-    client_name = _get_text(ws.cell(row=1, column=1))
+    client_name = _extract_client_name(ws)
 
     # Find date columns
     cy_col, py_col, cy_year, py_year, header_row = _find_date_columns(ws)
@@ -257,7 +279,7 @@ def parse_notes(filepath):
     Parse Notes to Accounts from client Excel file.
     Handles multiple sheets (3-4, 5-9, 10-17, 18-26) each containing
     multiple notes with their own headers.
-    
+
     Returns:
         dict mapping sheet_name → list of note groups:
         {
@@ -274,19 +296,22 @@ def parse_notes(filepath):
         }
     """
     wb = load_workbook(filepath, data_only=True)
-    
+
     # Known notes sheet names
     notes_sheet_names = ['3-4', '5-9', '10-17', '18-26']
     result = {}
 
     for sheet_name in notes_sheet_names:
         if sheet_name not in wb.sheetnames:
+            logger.debug("Notes sheet '%s' not found in workbook", sheet_name)
             continue
-        
+
         ws = wb[sheet_name]
         notes_groups = _parse_notes_sheet(ws)
         if notes_groups:
             result[sheet_name] = notes_groups
+        else:
+            logger.warning("Notes sheet '%s' was found but yielded no parsed groups", sheet_name)
 
     wb.close()
     if not result:
@@ -299,48 +324,49 @@ def parse_notes(filepath):
 def _parse_notes_sheet(ws):
     """Parse a single notes sheet, extracting all note groups."""
     notes = []
-    
+
     # Scan for note headings: look for cells with pattern "N <heading>" where N is bold number
     row = 1
     while row <= ws.max_row:
         # Look for note number in col A (bold integer)
         a_cell = ws.cell(row=row, column=1)
         b_cell = ws.cell(row=row, column=2)
-        
+
         note_num = None
         note_heading = ''
-        
+
         # Check col A for note number
         if a_cell.value is not None and _is_bold(a_cell):
             a_val = str(a_cell.value).strip()
             if re.match(r'^\d+[A-Za-z]?$', a_val):
                 note_num = a_val
                 note_heading = _get_text(b_cell)
-        
+
         if note_num is None:
             row += 1
             continue
-        
+
         # Found a note heading. Now find the date headers below it.
         cy_col, py_col, cy_year, py_year, date_row = _find_date_columns(
             ws, search_rows=range(row, min(row + 10, ws.max_row + 1)))
-        
+
         if cy_col is None:
             # No date columns found — try to use standard B/C/D layout from template
             # Some notes use cols C and D for CY/PY
+            logger.warning("Note %s: Could not find date columns — skipping", note_num)
             row += 1
             continue
-        
+
         # Detect if this is an asset note (PPE)
         is_asset_note = any(kw in note_heading.lower() for kw in
                            ['property', 'plant', 'equipment', 'intangible',
                             'right of use', 'rou', 'ppe'])
-        
+
         # Parse data rows until next note heading or end
         data_rows = []
         part_col = 2  # Notes typically use col B for particulars
         data_start = date_row + 1 if date_row else row + 3
-        
+
         for data_row in range(data_start, ws.max_row + 1):
             # Check if we hit the next note heading
             next_a = ws.cell(row=data_row, column=1)
@@ -348,15 +374,15 @@ def _parse_notes_sheet(ws):
                 next_val = str(next_a.value).strip()
                 if re.match(r'^\d+[A-Za-z]?$', next_val):
                     break  # Next note starts here
-            
+
             part_text = _get_text(ws.cell(row=data_row, column=part_col))
             cy_val = _get_value(ws.cell(row=data_row, column=cy_col))
             py_val = _get_value(ws.cell(row=data_row, column=py_col))
             is_bold_row = _is_bold(ws.cell(row=data_row, column=part_col))
-            
+
             if not part_text and cy_val is None and py_val is None:
                 continue
-            
+
             data_rows.append({
                 'particulars': part_text,
                 'cy': cy_val if cy_val is not None else 0,
@@ -365,7 +391,7 @@ def _parse_notes_sheet(ws):
                 'row_num': data_row
             })
             row = data_row
-        
+
         notes.append({
             'note_num': note_num,
             'note_heading': note_heading,
@@ -374,9 +400,9 @@ def _parse_notes_sheet(ws):
             'cy_year': cy_year,
             'py_year': py_year
         })
-        
+
         row += 1
-    
+
     return notes
 
 
@@ -389,13 +415,62 @@ def _col_letter(col_idx):
     return result
 
 
+def _find_first_nonzero(data, keywords, match_type='includes'):
+    """
+    Search rows for the first row matching any keyword that has a non-zero CY value.
+    Falls back to first matching row even if value is zero.
+    Logs a warning for each zero-value match.
+
+    Returns (cy_val, py_val).
+    """
+    first_match_cy = None
+    first_match_py = None
+
+    for kw in keywords:
+        kw_lower = kw.lower().strip()
+        for row in data:
+            p = row.get('particulars', '').lower().strip()
+            matched = False
+            if match_type == 'exact':
+                matched = (p == kw_lower)
+            else:
+                matched = (kw_lower in p)
+
+            if matched:
+                cy = float(row.get('cy', 0) or 0)
+                py = float(row.get('py', 0) or 0)
+
+                if cy != 0 or py != 0:
+                    logger.info("Found non-zero value for '%s' on row '%s': CY=%.2f, PY=%.2f",
+                                kw, row.get('particulars', ''), cy, py)
+                    return cy, py
+
+                # Record first zero match as fallback
+                if first_match_cy is None:
+                    first_match_cy = cy
+                    first_match_py = py
+                    logger.warning(
+                        "Keyword '%s' matched row '%s' but value is ZERO — "
+                        "may be a heading row; scanning further",
+                        kw, row.get('particulars', ''))
+
+    if first_match_cy is not None:
+        logger.warning(
+            "All matches for keywords %s returned zero — using zero as fallback", keywords)
+        return first_match_cy, first_match_py
+
+    logger.warning("No row found matching any of keywords: %s", keywords)
+    return 0.0, 0.0
+
+
 def extract_bs_summary(bs_data):
     """
     Extract summary values from parsed BS data for ratio calculations.
     Returns dict with keys like total_equity_cy, total_ca_cy, etc.
+    Uses robust multi-keyword, non-zero scanning to avoid returning 0 incorrectly.
     """
     summary = {}
-    
+
     def find_value(keyword, match_type='includes'):
         """Find CY and PY values by keyword match in particulars."""
         kw = keyword.lower().strip()
@@ -414,23 +489,25 @@ def extract_bs_summary(bs_data):
         cy_total = 0
         py_total = 0
         in_current_section = False
-        
+
         for row in bs_data:
             p = row.get('particulars', '').lower().strip()
             if 'current liabilities' in p and 'non' not in p:
                 in_current_section = True
             elif 'non current liabilities' in p or 'non-current liabilities' in p:
                 in_current_section = False
-            
+
             note = str(row.get('note', '')).strip()
             if note == note_num and in_current_section == is_current:
                 cy_total += float(row.get('cy', 0) or 0)
                 py_total += float(row.get('py', 0) or 0)
-        
+
         return cy_total, py_total
 
     # Total Equity
     cy, py = find_value('total equity', 'exact')
+    if cy == 0 and py == 0:
+        cy, py = find_value('total equity')
     summary['total_equity_cy'] = cy
     summary['total_equity_py'] = py
 
@@ -451,6 +528,11 @@ def extract_bs_summary(bs_data):
     summary['total_ncl_cy'] = cy
     summary['total_ncl_py'] = py
 
+    # Total Assets
+    cy, py = find_value('total assets')
+    summary['total_assets_cy'] = cy
+    summary['total_assets_py'] = py
+
     # LTB (Long-Term Borrowings): Non-current Preference shares + Lease liabilities
     ltb_pref_cy, ltb_pref_py = find_liability_by_note('11', False)
     ltb_lease_cy, ltb_lease_py = find_liability_by_note('12', False)
@@ -463,10 +545,27 @@ def extract_bs_summary(bs_data):
     summary['stb_cy'] = stb_pref_cy + stb_lease_cy
     summary['stb_py'] = stb_pref_py + stb_lease_py
 
-    # Trade Receivables (Debtors)
-    cy, py = find_value('trade receivables')
+    # Trade Receivables (Debtors) — scan multiple keywords, pick first non-zero row
+    debtors_keywords = [
+        'trade receivables',
+        'sundry debtors',
+        'trade and other receivables',
+        'receivables',
+        'debtors',
+    ]
+    cy, py = _find_first_nonzero(bs_data, debtors_keywords)
     summary['debtors_cy'] = cy
     summary['debtors_py'] = py
+
+    if cy == 0:
+        logger.warning(
+            "DEBTORS: Could not find non-zero trade receivables in BS — "
+            "Debtor Turnover Ratio will be 0. "
+            "Check that the Notes sheet contains the actual receivables figures.")
+
+    logger.info("BS Summary: total_ca=%.0f, total_cl=%.0f, debtors=%.0f, equity=%.0f",
+                summary['total_ca_cy'], summary['total_cl_cy'],
+                summary['debtors_cy'], summary['total_equity_cy'])
 
     return summary
 
@@ -474,51 +573,121 @@ def extract_bs_summary(bs_data):
 def extract_pl_summary(pl_data):
     """
     Extract summary values from parsed PL data for ratio calculations.
+    Uses robust multi-keyword, non-zero scanning to avoid returning 0 incorrectly.
+    Extracts both PBT and PAT (Profit After Tax).
     """
     summary = {}
 
-    def find_value(keyword, match_type='includes'):
-        kw = keyword.lower().strip()
-        for row in pl_data:
-            p = row.get('particulars', '').lower().strip()
-            if match_type == 'exact':
-                if p == kw:
-                    return row.get('cy', 0), row.get('py', 0)
-            else:
-                if kw in p:
-                    return row.get('cy', 0), row.get('py', 0)
-        return 0, 0
-
-    # Revenue from Operations — look for "software services" or the sub-item
-    cy, py = find_value('software services')
-    if cy == 0 and py == 0:
-        cy, py = find_value('revenue from operations')
+    # ── Revenue from Operations ──
+    # Try specific sub-items first, then heading rows with non-zero values
+    revenue_keywords = [
+        'revenue from operations',
+        'net revenue from operations',
+        'income from operations',
+        'software services',
+        'sale of products',
+        'sale of services',
+        'revenue',
+    ]
+    cy, py = _find_first_nonzero(pl_data, revenue_keywords)
     summary['revenue_ops_cy'] = cy
     summary['revenue_ops_py'] = py
 
-    # Total Income
-    cy, py = find_value('total income')
-    summary['total_revenue_cy'] = cy
-    summary['total_revenue_py'] = py
+    if cy == 0:
+        logger.warning(
+            "REVENUE: Could not find non-zero revenue from operations in P&L — "
+            "Net Profit Ratio and Debtor Turnover Ratio will be 0. "
+            "Check P&L sheet structure.")
 
-    # Profit Before Tax
-    cy, py = find_value('profit')
-    # Try more specific match
+    # ── Total Income ──
+    total_income_cy, total_income_py = 0.0, 0.0
+    for kw in ['total income', 'total revenue']:
+        cy_t, py_t = _find_first_nonzero(pl_data, [kw])
+        if cy_t != 0:
+            total_income_cy, total_income_py = cy_t, py_t
+            break
+    summary['total_revenue_cy'] = total_income_cy
+    summary['total_revenue_py'] = total_income_py
+
+    # ── Profit Before Tax (PBT) ──
+    # Must match "profit before tax" specifically — not just any "profit" row
+    pbt_cy, pbt_py = 0.0, 0.0
+    pbt_keywords = [
+        'profit before tax',
+        'profit/(loss) before tax',
+        'profit before income tax',
+        'earnings before tax',
+        'pbt',
+    ]
+    # Exact-priority search: look for rows where ALL of (profit, before, tax) appear
     for row in pl_data:
         p = row.get('particulars', '').lower().strip()
         if 'profit' in p and 'before' in p and 'tax' in p:
-            summary['pbt_cy'] = row.get('cy', 0)
-            summary['pbt_py'] = row.get('py', 0)
+            cy_v = float(row.get('cy', 0) or 0)
+            py_v = float(row.get('py', 0) or 0)
+            pbt_cy = cy_v
+            pbt_py = py_v
+            logger.info("PBT found: row='%s', CY=%.2f, PY=%.2f",
+                        row.get('particulars', ''), cy_v, py_v)
             break
     else:
-        summary['pbt_cy'] = cy
-        summary['pbt_py'] = py
+        pbt_cy, pbt_py = _find_first_nonzero(pl_data, pbt_keywords)
+        logger.warning("PBT: exact match failed, using keyword fallback: CY=%.2f", pbt_cy)
 
-    # Finance Charges/Cost
-    cy, py = find_value('finance charge')
-    if cy == 0 and py == 0:
-        cy, py = find_value('finance cost')
+    summary['pbt_cy'] = pbt_cy
+    summary['pbt_py'] = pbt_py
+
+    # ── Profit After Tax / Net Profit (PAT) ──
+    # This is the correct numerator for Net Profit Ratio
+    pat_cy, pat_py = 0.0, 0.0
+    # Priority ordered: most specific first
+    pat_row_candidates = [
+        ('profit after tax', False),
+        ('profit/(loss) after tax', False),
+        ('net profit after tax', False),
+        ('profit for the year', False),
+        ('profit/(loss) for the year', False),
+        ('net profit for the year', False),
+        ('net profit', False),
+        ('profit for the period', False),
+        ('total comprehensive income', False),
+    ]
+    for kw, exact in pat_row_candidates:
+        kw_lower = kw.lower()
+        for row in pl_data:
+            p = row.get('particulars', '').lower().strip()
+            if (exact and p == kw_lower) or (not exact and kw_lower in p):
+                cy_v = float(row.get('cy', 0) or 0)
+                py_v = float(row.get('py', 0) or 0)
+                if cy_v != 0 or py_v != 0:
+                    pat_cy = cy_v
+                    pat_py = py_v
+                    logger.info("PAT found via keyword '%s': row='%s', CY=%.2f, PY=%.2f",
+                                kw, row.get('particulars', ''), cy_v, py_v)
+                    break
+        if pat_cy != 0 or pat_py != 0:
+            break
+
+    if pat_cy == 0 and pat_py == 0:
+        # Last resort: use PBT if PAT not found
+        pat_cy = pbt_cy
+        pat_py = pbt_py
+        logger.warning(
+            "PAT: Could not find Profit After Tax row — falling back to PBT (%.2f). "
+            "Net Profit Ratio may be slightly overstated (ignores tax).", pat_cy)
+
+    summary['pat_cy'] = pat_cy
+    summary['pat_py'] = pat_py
+
+    # ── Finance Charges / Finance Cost ──
+    finance_keywords = ['finance charge', 'finance cost', 'interest expense',
+                        'interest and finance cost', 'borrowing cost']
+    cy, py = _find_first_nonzero(pl_data, finance_keywords)
     summary['finance_cost_cy'] = cy
     summary['finance_cost_py'] = py
+
+    logger.info("PL Summary: revenue_ops=%.0f, pbt=%.0f, pat=%.0f, finance_cost=%.0f",
+                summary['revenue_ops_cy'], summary['pbt_cy'],
+                summary['pat_cy'], summary['finance_cost_cy'])
 
     return summary

@@ -28,7 +28,7 @@ try:
             _dll.compute_ratios_from_raw.restype = ctypes.c_char_p
             _dll.compute_ratios_from_raw.argtypes = [ctypes.c_char_p, ctypes.c_char_p]
         except AttributeError:
-            pass # old dll version
+            pass  # old dll version
         _dll.process_bulk_data.restype = ctypes.c_char_p
         _dll.process_bulk_data.argtypes = [ctypes.c_char_p, ctypes.c_int]
         _dll.free_result.restype = None
@@ -80,7 +80,14 @@ def _py_compute_variances(data):
 
 
 def _py_compute_ratios(bs_summary, pl_summary):
-    """Python fallback for ratio computation."""
+    """
+    Python fallback for ratio computation.
+
+    Uses:
+    - Current Ratio  = Total Current Assets / Total Current Liabilities
+    - Net Profit Ratio = PAT / Revenue from Ops × 100  (uses Profit After Tax)
+    - Debtor Turnover = Revenue from Ops / Average Trade Receivables
+    """
     def safe_get(d, key, default=0.0):
         v = d.get(key, default)
         return float(v) if v is not None else default
@@ -108,21 +115,61 @@ def _py_compute_ratios(bs_summary, pl_summary):
     total_revenue_py = safe_get(pl_summary, 'total_revenue_py')
     pbt_cy = safe_get(pl_summary, 'pbt_cy')
     pbt_py = safe_get(pl_summary, 'pbt_py')
+    pat_cy = safe_get(pl_summary, 'pat_cy')
+    pat_py = safe_get(pl_summary, 'pat_py')
     finance_cost_cy = safe_get(pl_summary, 'finance_cost_cy')
     finance_cost_py = safe_get(pl_summary, 'finance_cost_py')
 
-    def calc_ratio(cy_num, cy_den, py_num, py_den, is_pct=False):
-        cy_val = 0.0 if cy_den == 0 else cy_num / cy_den
-        py_val = 0.0 if py_den == 0 else py_num / py_den
+    # Average trade receivables: (CY + PY) / 2
+    # CY = closing, PY = opening (prior year closing)
+    avg_debtors_cy = (debtors_cy + debtors_py) / 2.0 if (debtors_cy + debtors_py) > 0 else 0.0
+    # For PY ratio we only have one year of history, use PY closing as proxy
+    avg_debtors_py = debtors_py
+
+    # Log key inputs for traceability
+    logger.info(
+        "Ratio inputs — revenue_ops: CY=%.0f PY=%.0f | pat: CY=%.0f PY=%.0f | "
+        "debtors: CY=%.0f PY=%.0f (avg_cy=%.0f) | "
+        "total_ca: CY=%.0f PY=%.0f | total_cl: CY=%.0f PY=%.0f",
+        revenue_ops_cy, revenue_ops_py,
+        pat_cy, pat_py,
+        debtors_cy, debtors_py, avg_debtors_cy,
+        total_ca_cy, total_ca_py,
+        total_cl_cy, total_cl_py
+    )
+
+    def calc_ratio(cy_num, cy_den, py_num, py_den, is_pct=False, ratio_name=''):
+        """Compute a ratio with division-by-zero guard and logging."""
+        if cy_den == 0:
+            cy_val = 0.0
+            logger.warning(
+                "RATIO '%s': CY denominator is ZERO — ratio set to 0. "
+                "Numerator was %.2f", ratio_name, cy_num)
+        else:
+            cy_val = cy_num / cy_den
+
+        if py_den == 0:
+            py_val = 0.0
+            logger.warning(
+                "RATIO '%s': PY denominator is ZERO — ratio set to 0. "
+                "Numerator was %.2f", ratio_name, py_num)
+        else:
+            py_val = py_num / py_den
+
         if is_pct:
             cy_val *= 100
             py_val *= 100
+
         if py_val == 0:
             change = 0.0 if cy_val == 0 else 100.0
             display = "0.0%" if cy_val == 0 else "N/A"
         else:
             change = ((cy_val - py_val) / abs(py_val)) * 100.0
             display = f"{change:.1f}%"
+
+        logger.info("RATIO '%s': CY=%.4f, PY=%.4f, Change=%.2f%%",
+                    ratio_name, cy_val, py_val, change)
+
         return {
             'cy': round(cy_val, 4),
             'py': round(py_val, 4),
@@ -134,46 +181,64 @@ def _py_compute_ratios(bs_summary, pl_summary):
     ratios = [
         {
             'key': 'Debt Equity Ratio',
-            'formula': '(LTB + STB) / Total Equity',
-            **calc_ratio(ltb_cy + stb_cy, total_equity_cy, ltb_py + stb_py, total_equity_py)
+            'formula': '(Long-Term Borrowings + Short-Term Borrowings) / Total Equity',
+            **calc_ratio(ltb_cy + stb_cy, total_equity_cy,
+                         ltb_py + stb_py, total_equity_py,
+                         ratio_name='Debt Equity Ratio')
         },
         {
+            # FIXED: Label was "Total Assets / Total Liabilities" — now corrected
             'key': 'Current Ratio',
-            'formula': 'Total Assets / Total Liabilities',
-            **calc_ratio(total_ca_cy, total_cl_cy, total_ca_py, total_cl_py)
+            'formula': 'Current Assets / Current Liabilities',
+            **calc_ratio(total_ca_cy, total_cl_cy,
+                         total_ca_py, total_cl_py,
+                         ratio_name='Current Ratio')
         },
         {
             'key': 'GCA Days',
-            'formula': '(Total CA / Total Revenue) * 365',
-            **calc_ratio(total_ca_cy * 365, total_revenue_cy, total_ca_py * 365, total_revenue_py)
+            'formula': '(Total Current Assets / Total Revenue) × 365',
+            **calc_ratio(total_ca_cy * 365, total_revenue_cy,
+                         total_ca_py * 365, total_revenue_py,
+                         ratio_name='GCA Days')
         },
         {
             'key': 'Total Outside Liab. vs Total Equity',
-            'formula': '(TCL + TNCL) / Total Equity',
+            'formula': '(Total Current Liabilities + Total Non-Current Liabilities) / Total Equity',
             **calc_ratio(total_cl_cy + total_ncl_cy, total_equity_cy,
-                         total_cl_py + total_ncl_py, total_equity_py)
+                         total_cl_py + total_ncl_py, total_equity_py,
+                         ratio_name='Total Outside Liab. vs Total Equity')
         },
         {
+            # FIXED: Now uses PAT (Profit After Tax) instead of PBT
             'key': 'Net Profit Ratio',
-            'formula': 'PBT / Revenue from Ops',
-            **calc_ratio(pbt_cy, revenue_ops_cy, pbt_py, revenue_ops_py, True)
+            'formula': 'Net Profit After Tax / Revenue from Operations × 100',
+            **calc_ratio(pat_cy, revenue_ops_cy,
+                         pat_py, revenue_ops_py,
+                         is_pct=True, ratio_name='Net Profit Ratio')
         },
         {
             'key': 'Return on Equity (ROE)',
-            'formula': 'PBT / Avg. Total Equity',
-            **calc_ratio(pbt_cy, (total_equity_cy + total_equity_py) / 2.0, 
-                         pbt_py, total_equity_py / 2.0, True)
+            'formula': 'Profit Before Tax / Average Total Equity × 100',
+            **calc_ratio(pbt_cy, (total_equity_cy + total_equity_py) / 2.0,
+                         pbt_py, total_equity_py,
+                         is_pct=True, ratio_name='Return on Equity (ROE)')
         },
         {
             'key': 'Return on Capital Employed (ROCE)',
-            'formula': '(PBT + Finance Cost) / (TE + LTB + STB)',
-            **calc_ratio(pbt_cy + finance_cost_cy, total_equity_cy + ltb_cy + stb_cy,
-                         pbt_py + finance_cost_py, total_equity_py + ltb_py + stb_py, True)
+            'formula': '(PBT + Finance Cost) / (Total Equity + LTB + STB) × 100',
+            **calc_ratio(pbt_cy + finance_cost_cy,
+                         total_equity_cy + ltb_cy + stb_cy,
+                         pbt_py + finance_cost_py,
+                         total_equity_py + ltb_py + stb_py,
+                         is_pct=True, ratio_name='Return on Capital Employed (ROCE)')
         },
         {
+            # FIXED: Uses Average Trade Receivables = (CY + PY) / 2 instead of closing only
             'key': 'Debtor Turnover Ratio',
-            'formula': 'Revenue from Ops / Closing Debtors',
-            **calc_ratio(revenue_ops_cy, debtors_cy, revenue_ops_py, debtors_py)
+            'formula': 'Revenue from Operations / Average Trade Receivables',
+            **calc_ratio(revenue_ops_cy, avg_debtors_cy,
+                         revenue_ops_py, avg_debtors_py,
+                         ratio_name='Debtor Turnover Ratio')
         }
     ]
     return ratios
@@ -189,7 +254,7 @@ def _py_process_bulk_data(data):
 def compute_variances(data):
     """
     Compute absolute and percentage variances for each row.
-    
+
     Args:
         data: list of dicts with keys: particulars, note, cy, py, ...
     Returns:
@@ -210,8 +275,8 @@ def compute_variances(data):
 
 def compute_ratios(bs_summary, pl_summary):
     """
-    Compute all 8 financial ratios.
-    
+    Compute all financial ratios.
+
     Args:
         bs_summary: dict with BS aggregate values (total_equity_cy, etc.)
         pl_summary: dict with PL aggregate values (revenue_ops_cy, etc.)
@@ -231,10 +296,11 @@ def compute_ratios(bs_summary, pl_summary):
 
     return _py_compute_ratios(bs_summary, pl_summary)
 
+
 def compute_ratios_from_raw(bs_data, pl_data):
     """
     Compute financial ratios and extract summaries directly from raw parsed rows.
-    
+
     Args:
         bs_data: list of raw Balance Sheet row dicts
         pl_data: list of raw P&L row dicts
@@ -257,7 +323,7 @@ def compute_ratios_from_raw(bs_data, pl_data):
     bs_summary = extract_bs_summary(bs_data)
     pl_summary = extract_pl_summary(pl_data)
     ratios = _py_compute_ratios(bs_summary, pl_summary)
-    
+
     return {
         "ratios": ratios,
         "bs_summary": bs_summary,
@@ -268,7 +334,7 @@ def compute_ratios_from_raw(bs_data, pl_data):
 def process_bulk_data(data):
     """
     Process large datasets with optimized bulk computation.
-    
+
     Args:
         data: list of dicts with cy, py values
     Returns:
