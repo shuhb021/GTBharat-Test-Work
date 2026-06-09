@@ -54,6 +54,7 @@ extern "C" {
 FAR_EXPORT const char* process_bulk_data(const char* json_in, int row_count) {
     try {
         json input = json::parse(json_in);
+        row_count = input.size();
 
         // For small datasets, process sequentially
         if (row_count < 100) {

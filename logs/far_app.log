@@ -316,3 +316,519 @@ NameError: name 'QPushButton' is not defined
 2026-05-30 22:59:38,930 [INFO] src.gui.main_window: FAR generated: BS=54 rows, PL=33 rows, Ratios=8
 2026-05-30 23:00:06,968 [INFO] src.core.excel_export: FAR workbook saved to D:/GT Work/FAR/SHUBH_FAR_2025-261.xlsx
 2026-05-30 23:04:31,750 [INFO] __main__: Application exiting with code 0
+2026-05-30 23:12:43,291 [INFO] __main__: ============================================================
+2026-05-30 23:12:43,291 [INFO] __main__: FAR Automation Tool started at 2026-05-30T23:12:43.291048
+2026-05-30 23:12:43,292 [INFO] __main__: Python 3.10.11 (tags/v3.10.11:7d4cc5a, Apr  5 2023, 00:38:17) [MSC v.1929 64 bit (AMD64)]
+2026-05-30 23:12:43,292 [INFO] __main__: Project root: D:\GT Work\far-automation
+2026-05-30 23:12:43,437 [INFO] __main__: Stylesheet loaded
+2026-05-30 23:12:45,522 [INFO] __main__: Main window shown
+2026-05-30 23:16:46,454 [INFO] __main__: Application exiting with code 0
+2026-05-31 12:26:10,229 [INFO] __main__: ============================================================
+2026-05-31 12:26:10,229 [INFO] __main__: FAR Automation Tool started at 2026-05-31T12:26:10.229130
+2026-05-31 12:26:10,229 [INFO] __main__: Python 3.10.11 (tags/v3.10.11:7d4cc5a, Apr  5 2023, 00:38:17) [MSC v.1929 64 bit (AMD64)]
+2026-05-31 12:26:10,229 [INFO] __main__: Project root: D:\GT Work\far-automation
+2026-05-31 12:26:10,719 [INFO] __main__: Stylesheet loaded
+2026-05-31 12:26:17,140 [INFO] __main__: Main window shown
+2026-05-31 12:27:40,382 [INFO] src.core.cpp_bridge: C++ DLL not found at D:\GT Work\far-automation\cpp_engine\build\far_engine.dll — using Python fallback
+2026-05-31 12:27:41,192 [INFO] src.core.excel_parser: Date headers found: CY=2025 (col 7, row 7), PY=2024 (col 9, row 7)
+2026-05-31 12:27:41,192 [INFO] src.core.excel_parser: Parsed BS: 54 rows, CY=2025, PY=2024
+2026-05-31 12:27:41,926 [INFO] src.core.excel_parser: Date headers found: CY=2025 (col 5, row 7), PY=2024 (col 7, row 7)
+2026-05-31 12:27:41,926 [INFO] src.core.excel_parser: Parsed PL: 33 rows, CY=2025, PY=2024
+2026-05-31 12:27:42,686 [WARNING] src.core.excel_parser: Could not find two date header columns, found: []
+2026-05-31 12:27:42,686 [WARNING] src.core.excel_parser: Could not find two date header columns, found: [(56, 2, 2024)]
+2026-05-31 12:27:42,701 [INFO] src.core.excel_parser: Date headers found: CY=2025 (col 9, row 83), PY=2024 (col 10, row 83)
+2026-05-31 12:27:42,704 [INFO] src.core.excel_parser: Date headers found: CY=2025 (col 10, row 8), PY=2024 (col 11, row 8)
+2026-05-31 12:27:42,709 [INFO] src.core.excel_parser: Date headers found: CY=2025 (col 10, row 39), PY=2024 (col 11, row 39)
+2026-05-31 12:27:42,713 [INFO] src.core.excel_parser: Date headers found: CY=2025 (col 10, row 61), PY=2024 (col 11, row 61)
+2026-05-31 12:27:42,713 [INFO] src.core.excel_parser: Date headers found: CY=2025 (col 10, row 82), PY=2024 (col 11, row 82)
+2026-05-31 12:27:42,713 [INFO] src.core.excel_parser: Date headers found: CY=2025 (col 10, row 126), PY=2024 (col 11, row 126)
+2026-05-31 12:27:42,727 [INFO] src.core.excel_parser: Date headers found: CY=2025 (col 10, row 139), PY=2024 (col 11, row 139)
+2026-05-31 12:27:42,734 [INFO] src.core.excel_parser: Date headers found: CY=2025 (col 10, row 148), PY=2024 (col 11, row 148)
+2026-05-31 12:27:42,734 [INFO] src.core.excel_parser: Date headers found: CY=2025 (col 10, row 161), PY=2025 (col 10, row 161)
+2026-05-31 12:27:42,743 [INFO] src.core.excel_parser: Date headers found: CY=2025 (col 10, row 195), PY=2024 (col 11, row 195)
+2026-05-31 12:27:42,743 [INFO] src.core.excel_parser: Date headers found: CY=2025 (col 10, row 10), PY=2024 (col 11, row 10)
+2026-05-31 12:27:42,743 [WARNING] src.core.excel_parser: Could not find two date header columns, found: []
+2026-05-31 12:27:42,765 [INFO] src.core.excel_parser: Date headers found: CY=2025 (col 10, row 135), PY=2024 (col 11, row 135)
+2026-05-31 12:27:42,775 [WARNING] src.core.excel_parser: Could not find two date header columns, found: []
+2026-05-31 12:27:42,791 [INFO] src.core.excel_parser: Date headers found: CY=2025 (col 10, row 213), PY=2024 (col 11, row 213)
+2026-05-31 12:27:42,798 [INFO] src.core.excel_parser: Date headers found: CY=2025 (col 10, row 233), PY=2024 (col 11, row 233)
+2026-05-31 12:27:42,804 [INFO] src.core.excel_parser: Date headers found: CY=2025 (col 10, row 263), PY=2024 (col 11, row 263)
+2026-05-31 12:27:42,810 [INFO] src.core.excel_parser: Date headers found: CY=2025 (col 10, row 275), PY=2024 (col 11, row 275)
+2026-05-31 12:27:42,810 [INFO] src.core.excel_parser: Date headers found: CY=2025 (col 10, row 293), PY=2024 (col 11, row 293)
+2026-05-31 12:27:42,825 [INFO] src.core.excel_parser: Date headers found: CY=2025 (col 10, row 338), PY=2024 (col 11, row 338)
+2026-05-31 12:27:42,825 [INFO] src.core.excel_parser: Date headers found: CY=2025 (col 10, row 356), PY=2024 (col 11, row 356)
+2026-05-31 12:27:42,840 [INFO] src.core.excel_parser: Date headers found: CY=2025 (col 10, row 368), PY=2024 (col 11, row 368)
+2026-05-31 12:27:42,840 [INFO] src.core.excel_parser: Date headers found: CY=2025 (col 9, row 9), PY=2024 (col 10, row 9)
+2026-05-31 12:27:42,859 [INFO] src.core.excel_parser: Date headers found: CY=2025 (col 9, row 19), PY=2024 (col 10, row 19)
+2026-05-31 12:27:42,859 [INFO] src.core.excel_parser: Date headers found: CY=2025 (col 9, row 38), PY=2024 (col 10, row 38)
+2026-05-31 12:27:42,874 [WARNING] src.core.excel_parser: Could not find two date header columns, found: [(53, 10, 2025)]
+2026-05-31 12:27:42,884 [INFO] src.core.excel_parser: Date headers found: CY=2025 (col 9, row 68), PY=2024 (col 10, row 68)
+2026-05-31 12:27:42,894 [INFO] src.core.excel_parser: Date headers found: CY=2025 (col 9, row 80), PY=2024 (col 10, row 80)
+2026-05-31 12:27:42,911 [INFO] src.core.excel_parser: Date headers found: CY=2025 (col 9, row 122), PY=2024 (col 10, row 122)
+2026-05-31 12:27:42,923 [INFO] src.core.excel_parser: Date headers found: CY=2025 (col 9, row 137), PY=2024 (col 10, row 137)
+2026-05-31 12:27:42,938 [INFO] src.core.excel_parser: Date headers found: CY=2025 (col 9, row 165), PY=2024 (col 10, row 165)
+2026-05-31 12:27:42,951 [INFO] src.core.excel_parser: Date headers found: CY=2025 (col 9, row 195), PY=2024 (col 10, row 195)
+2026-05-31 12:27:42,963 [INFO] src.core.excel_parser: Date headers found: CY=2025 (col 9, row 223), PY=2024 (col 10, row 223)
+2026-05-31 12:27:42,972 [INFO] src.core.excel_parser: Date headers found: CY=2025 (col 9, row 258), PY=2024 (col 2, row 258)
+2026-05-31 12:27:42,984 [INFO] src.core.excel_parser: Date headers found: CY=2025 (col 9, row 277), PY=2024 (col 10, row 277)
+2026-05-31 12:27:42,997 [INFO] src.core.excel_parser: Date headers found: CY=2025 (col 9, row 316), PY=2025 (col 2, row 316)
+2026-05-31 12:27:42,997 [INFO] src.core.excel_parser: Parsed notes from 4 sheets
+2026-05-31 12:27:43,712 [INFO] matplotlib.category: Using categorical units to plot a list of strings that are all parsable as floats or dates. If these strings should be plotted as numbers, cast to the appropriate data type before plotting.
+2026-05-31 12:27:43,727 [INFO] matplotlib.category: Using categorical units to plot a list of strings that are all parsable as floats or dates. If these strings should be plotted as numbers, cast to the appropriate data type before plotting.
+2026-05-31 12:27:43,727 [INFO] matplotlib.category: Using categorical units to plot a list of strings that are all parsable as floats or dates. If these strings should be plotted as numbers, cast to the appropriate data type before plotting.
+2026-05-31 12:27:43,745 [INFO] matplotlib.category: Using categorical units to plot a list of strings that are all parsable as floats or dates. If these strings should be plotted as numbers, cast to the appropriate data type before plotting.
+2026-05-31 12:27:43,751 [INFO] matplotlib.category: Using categorical units to plot a list of strings that are all parsable as floats or dates. If these strings should be plotted as numbers, cast to the appropriate data type before plotting.
+2026-05-31 12:27:43,751 [INFO] matplotlib.category: Using categorical units to plot a list of strings that are all parsable as floats or dates. If these strings should be plotted as numbers, cast to the appropriate data type before plotting.
+2026-05-31 12:27:43,755 [INFO] matplotlib.category: Using categorical units to plot a list of strings that are all parsable as floats or dates. If these strings should be plotted as numbers, cast to the appropriate data type before plotting.
+2026-05-31 12:27:43,755 [INFO] matplotlib.category: Using categorical units to plot a list of strings that are all parsable as floats or dates. If these strings should be plotted as numbers, cast to the appropriate data type before plotting.
+2026-05-31 12:27:43,755 [INFO] matplotlib.category: Using categorical units to plot a list of strings that are all parsable as floats or dates. If these strings should be plotted as numbers, cast to the appropriate data type before plotting.
+2026-05-31 12:27:43,786 [INFO] matplotlib.category: Using categorical units to plot a list of strings that are all parsable as floats or dates. If these strings should be plotted as numbers, cast to the appropriate data type before plotting.
+2026-05-31 12:27:43,786 [INFO] matplotlib.category: Using categorical units to plot a list of strings that are all parsable as floats or dates. If these strings should be plotted as numbers, cast to the appropriate data type before plotting.
+2026-05-31 12:27:43,786 [INFO] matplotlib.category: Using categorical units to plot a list of strings that are all parsable as floats or dates. If these strings should be plotted as numbers, cast to the appropriate data type before plotting.
+2026-05-31 12:27:43,786 [INFO] matplotlib.category: Using categorical units to plot a list of strings that are all parsable as floats or dates. If these strings should be plotted as numbers, cast to the appropriate data type before plotting.
+2026-05-31 12:27:44,119 [INFO] src.gui.main_window: FAR generated: BS=54 rows, PL=33 rows, Ratios=8
+2026-05-31 12:27:59,675 [INFO] matplotlib.category: Using categorical units to plot a list of strings that are all parsable as floats or dates. If these strings should be plotted as numbers, cast to the appropriate data type before plotting.
+2026-05-31 12:27:59,675 [INFO] matplotlib.category: Using categorical units to plot a list of strings that are all parsable as floats or dates. If these strings should be plotted as numbers, cast to the appropriate data type before plotting.
+2026-05-31 12:27:59,677 [INFO] matplotlib.category: Using categorical units to plot a list of strings that are all parsable as floats or dates. If these strings should be plotted as numbers, cast to the appropriate data type before plotting.
+2026-05-31 12:27:59,677 [INFO] matplotlib.category: Using categorical units to plot a list of strings that are all parsable as floats or dates. If these strings should be plotted as numbers, cast to the appropriate data type before plotting.
+2026-05-31 12:28:38,373 [INFO] src.core.excel_export: FAR workbook saved to D:/GT Work/FAR/yjff_FAR_2025-26.xlsx
+2026-05-31 12:35:01,889 [INFO] src.core.docx_export: FAR Word document saved to D:/GT Work/FAR/yjff_FAR_2025-26.docx
+2026-06-03 12:52:53,865 [INFO] __main__: ============================================================
+2026-06-03 12:52:53,866 [INFO] __main__: FAR Automation Tool started at 2026-06-03T12:52:53.866437
+2026-06-03 12:52:53,866 [INFO] __main__: Python 3.10.11 (tags/v3.10.11:7d4cc5a, Apr  5 2023, 00:38:17) [MSC v.1929 64 bit (AMD64)]
+2026-06-03 12:52:53,866 [INFO] __main__: Project root: D:\GT Work\far-automation
+2026-06-03 12:52:54,316 [INFO] __main__: Stylesheet loaded
+2026-06-03 12:53:00,984 [INFO] __main__: Main window shown
+2026-06-03 12:53:42,533 [INFO] src.core.cpp_bridge: C++ DLL not found at D:\GT Work\far-automation\cpp_engine\build\far_engine.dll — using Python fallback
+2026-06-03 12:53:42,572 [INFO] src.core.excel_parser: Date headers found: CY=2025 (col 7, row 7), PY=2024 (col 9, row 7)
+2026-06-03 12:53:42,574 [INFO] src.core.excel_parser: Parsed BS: 66 rows, CY=2025, PY=2024
+2026-06-03 12:53:42,622 [INFO] src.core.excel_parser: Date headers found: CY=2025 (col 5, row 7), PY=2024 (col 7, row 7)
+2026-06-03 12:53:42,623 [INFO] src.core.excel_parser: Parsed PL: 74 rows, CY=2025, PY=2024
+2026-06-03 12:53:42,713 [INFO] src.core.excel_parser: Date headers found: CY=2025 (col 3, row 6), PY=2025 (col 3, row 6)
+2026-06-03 12:53:42,714 [INFO] src.core.excel_parser: Date headers found: CY=2025 (col 3, row 22), PY=2025 (col 3, row 22)
+2026-06-03 12:53:42,715 [INFO] src.core.excel_parser: Date headers found: CY=2025 (col 3, row 31), PY=2025 (col 3, row 31)
+2026-06-03 12:53:42,717 [INFO] src.core.excel_parser: Date headers found: CY=2025 (col 3, row 41), PY=2025 (col 3, row 41)
+2026-06-03 12:53:42,717 [INFO] src.core.excel_parser: Date headers found: CY=2025 (col 3, row 49), PY=2025 (col 3, row 49)
+2026-06-03 12:53:42,718 [INFO] src.core.excel_parser: Date headers found: CY=2025 (col 3, row 6), PY=2025 (col 3, row 6)
+2026-06-03 12:53:42,719 [INFO] src.core.excel_parser: Date headers found: CY=2025 (col 3, row 15), PY=2025 (col 3, row 15)
+2026-06-03 12:53:42,719 [INFO] src.core.excel_parser: Date headers found: CY=2025 (col 3, row 23), PY=2025 (col 3, row 23)
+2026-06-03 12:53:42,720 [INFO] src.core.excel_parser: Date headers found: CY=2025 (col 3, row 34), PY=2025 (col 3, row 34)
+2026-06-03 12:53:42,720 [INFO] src.core.excel_parser: Date headers found: CY=2025 (col 3, row 53), PY=2025 (col 3, row 53)
+2026-06-03 12:53:42,721 [INFO] src.core.excel_parser: Date headers found: CY=2025 (col 3, row 6), PY=2025 (col 3, row 6)
+2026-06-03 12:53:42,721 [INFO] src.core.excel_parser: Date headers found: CY=2025 (col 3, row 18), PY=2025 (col 3, row 18)
+2026-06-03 12:53:42,723 [INFO] src.core.excel_parser: Date headers found: CY=2025 (col 3, row 27), PY=2025 (col 3, row 27)
+2026-06-03 12:53:42,724 [INFO] src.core.excel_parser: Date headers found: CY=2025 (col 3, row 40), PY=2025 (col 3, row 40)
+2026-06-03 12:53:42,724 [INFO] src.core.excel_parser: Date headers found: CY=2025 (col 3, row 6), PY=2025 (col 3, row 6)
+2026-06-03 12:53:42,725 [INFO] src.core.excel_parser: Date headers found: CY=2025 (col 3, row 27), PY=2025 (col 3, row 27)
+2026-06-03 12:53:42,726 [INFO] src.core.excel_parser: Date headers found: CY=2025 (col 3, row 42), PY=2025 (col 3, row 42)
+2026-06-03 12:53:42,727 [INFO] src.core.excel_parser: Date headers found: CY=2025 (col 3, row 55), PY=2025 (col 3, row 55)
+2026-06-03 12:53:42,727 [INFO] src.core.excel_parser: Date headers found: CY=2025 (col 3, row 66), PY=2025 (col 3, row 66)
+2026-06-03 12:53:42,728 [INFO] src.core.excel_parser: Date headers found: CY=2025 (col 3, row 77), PY=2025 (col 3, row 77)
+2026-06-03 12:53:42,728 [INFO] src.core.excel_parser: Parsed notes from 4 sheets
+2026-06-03 12:53:43,189 [INFO] matplotlib.category: Using categorical units to plot a list of strings that are all parsable as floats or dates. If these strings should be plotted as numbers, cast to the appropriate data type before plotting.
+2026-06-03 12:53:43,191 [INFO] matplotlib.category: Using categorical units to plot a list of strings that are all parsable as floats or dates. If these strings should be plotted as numbers, cast to the appropriate data type before plotting.
+2026-06-03 12:53:43,192 [INFO] matplotlib.category: Using categorical units to plot a list of strings that are all parsable as floats or dates. If these strings should be plotted as numbers, cast to the appropriate data type before plotting.
+2026-06-03 12:53:43,220 [INFO] matplotlib.category: Using categorical units to plot a list of strings that are all parsable as floats or dates. If these strings should be plotted as numbers, cast to the appropriate data type before plotting.
+2026-06-03 12:53:43,222 [INFO] matplotlib.category: Using categorical units to plot a list of strings that are all parsable as floats or dates. If these strings should be plotted as numbers, cast to the appropriate data type before plotting.
+2026-06-03 12:53:43,222 [INFO] matplotlib.category: Using categorical units to plot a list of strings that are all parsable as floats or dates. If these strings should be plotted as numbers, cast to the appropriate data type before plotting.
+2026-06-03 12:53:43,224 [INFO] matplotlib.category: Using categorical units to plot a list of strings that are all parsable as floats or dates. If these strings should be plotted as numbers, cast to the appropriate data type before plotting.
+2026-06-03 12:53:43,225 [INFO] matplotlib.category: Using categorical units to plot a list of strings that are all parsable as floats or dates. If these strings should be plotted as numbers, cast to the appropriate data type before plotting.
+2026-06-03 12:53:43,225 [INFO] matplotlib.category: Using categorical units to plot a list of strings that are all parsable as floats or dates. If these strings should be plotted as numbers, cast to the appropriate data type before plotting.
+2026-06-03 12:53:43,251 [INFO] matplotlib.category: Using categorical units to plot a list of strings that are all parsable as floats or dates. If these strings should be plotted as numbers, cast to the appropriate data type before plotting.
+2026-06-03 12:53:43,251 [INFO] matplotlib.category: Using categorical units to plot a list of strings that are all parsable as floats or dates. If these strings should be plotted as numbers, cast to the appropriate data type before plotting.
+2026-06-03 12:53:43,251 [INFO] matplotlib.category: Using categorical units to plot a list of strings that are all parsable as floats or dates. If these strings should be plotted as numbers, cast to the appropriate data type before plotting.
+2026-06-03 12:53:43,253 [INFO] matplotlib.category: Using categorical units to plot a list of strings that are all parsable as floats or dates. If these strings should be plotted as numbers, cast to the appropriate data type before plotting.
+2026-06-03 12:53:43,551 [INFO] src.gui.main_window: FAR generated: BS=66 rows, PL=74 rows, Ratios=8
+2026-06-03 12:54:05,520 [INFO] matplotlib.category: Using categorical units to plot a list of strings that are all parsable as floats or dates. If these strings should be plotted as numbers, cast to the appropriate data type before plotting.
+2026-06-03 12:54:05,520 [INFO] matplotlib.category: Using categorical units to plot a list of strings that are all parsable as floats or dates. If these strings should be plotted as numbers, cast to the appropriate data type before plotting.
+2026-06-03 12:54:05,523 [INFO] matplotlib.category: Using categorical units to plot a list of strings that are all parsable as floats or dates. If these strings should be plotted as numbers, cast to the appropriate data type before plotting.
+2026-06-03 12:54:05,523 [INFO] matplotlib.category: Using categorical units to plot a list of strings that are all parsable as floats or dates. If these strings should be plotted as numbers, cast to the appropriate data type before plotting.
+2026-06-03 12:54:47,433 [INFO] src.core.excel_export: FAR workbook saved to C:/Users/shuhb/Downloads/SHUBH_FAR_2025-26.xlsx
+2026-06-03 12:56:17,553 [INFO] matplotlib.category: Using categorical units to plot a list of strings that are all parsable as floats or dates. If these strings should be plotted as numbers, cast to the appropriate data type before plotting.
+2026-06-03 12:56:17,555 [INFO] matplotlib.category: Using categorical units to plot a list of strings that are all parsable as floats or dates. If these strings should be plotted as numbers, cast to the appropriate data type before plotting.
+2026-06-03 12:56:17,557 [INFO] matplotlib.category: Using categorical units to plot a list of strings that are all parsable as floats or dates. If these strings should be plotted as numbers, cast to the appropriate data type before plotting.
+2026-06-03 12:56:17,558 [INFO] matplotlib.category: Using categorical units to plot a list of strings that are all parsable as floats or dates. If these strings should be plotted as numbers, cast to the appropriate data type before plotting.
+2026-06-03 13:00:41,439 [INFO] src.core.excel_export: FAR workbook saved to C:/Users/shuhb/Downloads/SHUBH_FAR_r2025-26.xlsx
+2026-06-03 13:14:12,230 [INFO] __main__: ============================================================
+2026-06-03 13:14:12,230 [INFO] __main__: FAR Automation Tool started at 2026-06-03T13:14:12.230153
+2026-06-03 13:14:12,230 [INFO] __main__: Python 3.10.11 (tags/v3.10.11:7d4cc5a, Apr  5 2023, 00:38:17) [MSC v.1929 64 bit (AMD64)]
+2026-06-03 13:14:12,230 [INFO] __main__: Project root: D:\GT Work\far-automation
+2026-06-03 13:14:12,375 [INFO] __main__: Stylesheet loaded
+2026-06-03 13:14:14,202 [INFO] __main__: Main window shown
+2026-06-03 13:14:48,214 [INFO] src.core.cpp_bridge: C++ DLL not found at D:\GT Work\far-automation\cpp_engine\build\far_engine.dll — using Python fallback
+2026-06-03 13:14:48,269 [INFO] src.core.excel_parser: Client name extracted from row 1: Sunrise Manufacturing & Trading Co. Pvt. Ltd.
+2026-06-03 13:14:48,270 [INFO] src.core.excel_parser: Date headers found: CY=2025 (col 7, row 7), PY=2024 (col 9, row 7)
+2026-06-03 13:14:48,271 [INFO] src.core.excel_parser: Parsed BS: 66 rows, CY=2025, PY=2024
+2026-06-03 13:14:48,321 [INFO] src.core.excel_parser: Client name extracted from row 1: Sunrise Manufacturing & Trading Co. Pvt. Ltd.
+2026-06-03 13:14:48,322 [INFO] src.core.excel_parser: Date headers found: CY=2025 (col 5, row 7), PY=2024 (col 7, row 7)
+2026-06-03 13:14:48,323 [INFO] src.core.excel_parser: Parsed PL: 74 rows, CY=2025, PY=2024
+2026-06-03 13:14:48,402 [INFO] src.core.excel_parser: Date headers found: CY=2025 (col 3, row 6), PY=2025 (col 3, row 6)
+2026-06-03 13:14:48,403 [INFO] src.core.excel_parser: Date headers found: CY=2025 (col 3, row 22), PY=2025 (col 3, row 22)
+2026-06-03 13:14:48,404 [INFO] src.core.excel_parser: Date headers found: CY=2025 (col 3, row 31), PY=2025 (col 3, row 31)
+2026-06-03 13:14:48,406 [INFO] src.core.excel_parser: Date headers found: CY=2025 (col 3, row 41), PY=2025 (col 3, row 41)
+2026-06-03 13:14:48,406 [INFO] src.core.excel_parser: Date headers found: CY=2025 (col 3, row 49), PY=2025 (col 3, row 49)
+2026-06-03 13:14:48,407 [INFO] src.core.excel_parser: Date headers found: CY=2025 (col 3, row 6), PY=2025 (col 3, row 6)
+2026-06-03 13:14:48,408 [INFO] src.core.excel_parser: Date headers found: CY=2025 (col 3, row 15), PY=2025 (col 3, row 15)
+2026-06-03 13:14:48,408 [INFO] src.core.excel_parser: Date headers found: CY=2025 (col 3, row 23), PY=2025 (col 3, row 23)
+2026-06-03 13:14:48,409 [INFO] src.core.excel_parser: Date headers found: CY=2025 (col 3, row 34), PY=2025 (col 3, row 34)
+2026-06-03 13:14:48,409 [INFO] src.core.excel_parser: Date headers found: CY=2025 (col 3, row 53), PY=2025 (col 3, row 53)
+2026-06-03 13:14:48,410 [INFO] src.core.excel_parser: Date headers found: CY=2025 (col 3, row 6), PY=2025 (col 3, row 6)
+2026-06-03 13:14:48,410 [INFO] src.core.excel_parser: Date headers found: CY=2025 (col 3, row 18), PY=2025 (col 3, row 18)
+2026-06-03 13:14:48,411 [INFO] src.core.excel_parser: Date headers found: CY=2025 (col 3, row 27), PY=2025 (col 3, row 27)
+2026-06-03 13:14:48,412 [INFO] src.core.excel_parser: Date headers found: CY=2025 (col 3, row 40), PY=2025 (col 3, row 40)
+2026-06-03 13:14:48,413 [INFO] src.core.excel_parser: Date headers found: CY=2025 (col 3, row 6), PY=2025 (col 3, row 6)
+2026-06-03 13:14:48,414 [INFO] src.core.excel_parser: Date headers found: CY=2025 (col 3, row 27), PY=2025 (col 3, row 27)
+2026-06-03 13:14:48,414 [INFO] src.core.excel_parser: Date headers found: CY=2025 (col 3, row 42), PY=2025 (col 3, row 42)
+2026-06-03 13:14:48,415 [INFO] src.core.excel_parser: Date headers found: CY=2025 (col 3, row 55), PY=2025 (col 3, row 55)
+2026-06-03 13:14:48,416 [INFO] src.core.excel_parser: Date headers found: CY=2025 (col 3, row 66), PY=2025 (col 3, row 66)
+2026-06-03 13:14:48,416 [INFO] src.core.excel_parser: Date headers found: CY=2025 (col 3, row 77), PY=2025 (col 3, row 77)
+2026-06-03 13:14:48,417 [INFO] src.core.excel_parser: Parsed notes from 4 sheets
+2026-06-03 13:14:48,426 [INFO] src.core.excel_parser: Found non-zero value for 'trade receivables' on row 'Trade Receivables': CY=52340.00, PY=44780.00
+2026-06-03 13:14:48,427 [INFO] src.core.excel_parser: BS Summary: total_ca=124750, total_cl=63800, debtors=52340, equity=108540
+2026-06-03 13:14:48,427 [WARNING] src.core.excel_parser: Keyword 'revenue from operations' matched row 'Revenue from Operations' but value is ZERO — may be a heading row; scanning further
+2026-06-03 13:14:48,427 [INFO] src.core.excel_parser: Found non-zero value for 'revenue from operations' on row 'Revenue from Operations (Net)': CY=372220.00, PY=308740.00
+2026-06-03 13:14:48,427 [INFO] src.core.excel_parser: Found non-zero value for 'total income' on row 'Total Income': CY=381930.00, PY=315640.00
+2026-06-03 13:14:48,427 [INFO] src.core.excel_parser: PBT found: row='Profit Before Exceptional Items and Tax', CY=65220.00, PY=53410.00
+2026-06-03 13:14:48,427 [INFO] src.core.excel_parser: PAT found via keyword 'profit for the year': row='Profit for the Year', CY=45200.00, PY=37810.00
+2026-06-03 13:14:48,428 [WARNING] src.core.excel_parser: Keyword 'finance cost' matched row 'Finance Costs' but value is ZERO — may be a heading row; scanning further
+2026-06-03 13:14:48,428 [INFO] src.core.excel_parser: Found non-zero value for 'finance cost' on row 'Total Finance Costs': CY=9580.00, PY=8630.00
+2026-06-03 13:14:48,428 [INFO] src.core.excel_parser: PL Summary: revenue_ops=372220, pbt=65220, pat=45200, finance_cost=9580
+2026-06-03 13:14:48,428 [INFO] src.core.cpp_bridge: Ratio inputs — revenue_ops: CY=372220 PY=308740 | pat: CY=45200 PY=37810 | debtors: CY=52340 PY=44780 (avg_cy=48560) | total_ca: CY=124750 PY=102670 | total_cl: CY=63800 PY=53300
+2026-06-03 13:14:48,428 [INFO] src.core.cpp_bridge: RATIO 'Debt Equity Ratio': CY=0.8362, PY=0.8263, Change=1.19%
+2026-06-03 13:14:48,428 [INFO] src.core.cpp_bridge: RATIO 'Current Ratio': CY=1.9553, PY=1.9263, Change=1.51%
+2026-06-03 13:14:48,428 [INFO] src.core.cpp_bridge: RATIO 'GCA Days': CY=119.2201, PY=118.7256, Change=0.42%
+2026-06-03 13:14:48,428 [INFO] src.core.cpp_bridge: RATIO 'Total Outside Liab. vs Total Equity': CY=1.2609, PY=1.3586, Change=-7.19%
+2026-06-03 13:14:48,428 [INFO] src.core.cpp_bridge: RATIO 'Net Profit Ratio': CY=12.1434, PY=12.2466, Change=-0.84%
+2026-06-03 13:14:48,428 [INFO] src.core.cpp_bridge: RATIO 'Return on Equity (ROE)': CY=64.9440, PY=57.8594, Change=12.24%
+2026-06-03 13:14:48,429 [INFO] src.core.cpp_bridge: RATIO 'Return on Capital Employed (ROCE)': CY=37.5314, PY=36.7993, Change=1.99%
+2026-06-03 13:14:48,429 [INFO] src.core.cpp_bridge: RATIO 'Debtor Turnover Ratio': CY=7.6652, PY=6.8946, Change=11.18%
+2026-06-03 13:14:48,444 [INFO] src.core.validation: VALIDATION PASS — ✓ Balance Sheet identity: Assets=245,400 ≈ Equity+Liabilities=245,400 (diff=0, within tolerance 245)
+2026-06-03 13:14:48,488 [INFO] src.core.validation: VALIDATION PASS — ✓ Revenue from Operations > 0: Revenue = 372,220
+2026-06-03 13:14:48,489 [INFO] src.core.validation: VALIDATION PASS — ✓ Average Trade Receivables > 0: CY=52,340, PY=44,780, Avg=48,560
+2026-06-03 13:14:48,490 [INFO] src.core.validation: VALIDATION PASS — ✓ Ratio 'Current Ratio': CY=1.9553 (non-zero)
+2026-06-03 13:14:48,491 [INFO] src.core.validation: VALIDATION PASS — ✓ Ratio 'Net Profit Ratio': CY=12.1434 (non-zero)
+2026-06-03 13:14:48,492 [INFO] src.core.validation: VALIDATION PASS — ✓ Ratio 'Return on Equity (ROE)': CY=64.9440 (non-zero)
+2026-06-03 13:14:48,492 [INFO] src.core.validation: VALIDATION PASS — ✓ Ratio 'Return on Capital Employed (ROCE)': CY=37.5314 (non-zero)
+2026-06-03 13:14:48,493 [INFO] src.core.validation: VALIDATION PASS — ✓ Ratio 'Debtor Turnover Ratio': CY=7.6652 (non-zero)
+2026-06-03 13:14:48,493 [INFO] src.core.validation: VALIDATION PASS — ✓ P&L mapping: Revenue from Operations: = 372,220
+2026-06-03 13:14:48,494 [INFO] src.core.validation: VALIDATION PASS — ✓ P&L mapping: Profit Before Tax: = 65,220
+2026-06-03 13:14:48,494 [INFO] src.core.validation: VALIDATION PASS — ✓ P&L mapping: Profit After Tax: = 45,200
+2026-06-03 13:14:48,495 [INFO] src.core.validation: VALIDATION PASS — ✓ BS mapping: Total Current Assets: = 124,750
+2026-06-03 13:14:48,497 [INFO] src.core.validation: VALIDATION PASS — ✓ BS mapping: Total Current Liabilities: = 63,800
+2026-06-03 13:14:48,498 [INFO] src.core.validation: VALIDATION PASS — ✓ BS mapping: Total Equity: = 108,540
+2026-06-03 13:14:48,498 [INFO] src.core.validation: VALIDATION PASS — ✓ BS mapping: Trade Receivables: = 52,340
+2026-06-03 13:14:48,499 [INFO] src.core.validation: VALIDATION PASS — ✓ BS row count: 66 rows parsed
+2026-06-03 13:14:48,500 [INFO] src.core.validation: VALIDATION PASS — ✓ P&L row count: 74 rows parsed
+2026-06-03 13:14:48,500 [INFO] src.core.validation: Validation complete: 17 passed, 0 warnings, 0 failed, 0 auto-corrected
+2026-06-03 13:14:48,500 [INFO] src.core.validation: ============================================================
+FAR VALIDATION REPORT
+============================================================
+
+PASSED CHECKS:
+  ✓ Balance Sheet identity: Assets=245,400 ≈ Equity+Liabilities=245,400 (diff=0, within tolerance 245)
+  ✓ Revenue from Operations > 0: Revenue = 372,220
+  ✓ Average Trade Receivables > 0: CY=52,340, PY=44,780, Avg=48,560
+  ✓ Ratio 'Current Ratio': CY=1.9553 (non-zero)
+  ✓ Ratio 'Net Profit Ratio': CY=12.1434 (non-zero)
+  ✓ Ratio 'Return on Equity (ROE)': CY=64.9440 (non-zero)
+  ✓ Ratio 'Return on Capital Employed (ROCE)': CY=37.5314 (non-zero)
+  ✓ Ratio 'Debtor Turnover Ratio': CY=7.6652 (non-zero)
+  ✓ P&L mapping: Revenue from Operations: = 372,220
+  ✓ P&L mapping: Profit Before Tax: = 65,220
+  ✓ P&L mapping: Profit After Tax: = 45,200
+  ✓ BS mapping: Total Current Assets: = 124,750
+  ✓ BS mapping: Total Current Liabilities: = 63,800
+  ✓ BS mapping: Total Equity: = 108,540
+  ✓ BS mapping: Trade Receivables: = 52,340
+  ✓ BS row count: 66 rows parsed
+  ✓ P&L row count: 74 rows parsed
+============================================================
+2026-06-03 13:14:48,904 [INFO] matplotlib.category: Using categorical units to plot a list of strings that are all parsable as floats or dates. If these strings should be plotted as numbers, cast to the appropriate data type before plotting.
+2026-06-03 13:14:48,906 [INFO] matplotlib.category: Using categorical units to plot a list of strings that are all parsable as floats or dates. If these strings should be plotted as numbers, cast to the appropriate data type before plotting.
+2026-06-03 13:14:48,908 [INFO] matplotlib.category: Using categorical units to plot a list of strings that are all parsable as floats or dates. If these strings should be plotted as numbers, cast to the appropriate data type before plotting.
+2026-06-03 13:14:48,940 [INFO] matplotlib.category: Using categorical units to plot a list of strings that are all parsable as floats or dates. If these strings should be plotted as numbers, cast to the appropriate data type before plotting.
+2026-06-03 13:14:48,941 [INFO] matplotlib.category: Using categorical units to plot a list of strings that are all parsable as floats or dates. If these strings should be plotted as numbers, cast to the appropriate data type before plotting.
+2026-06-03 13:14:48,943 [INFO] matplotlib.category: Using categorical units to plot a list of strings that are all parsable as floats or dates. If these strings should be plotted as numbers, cast to the appropriate data type before plotting.
+2026-06-03 13:14:48,944 [INFO] matplotlib.category: Using categorical units to plot a list of strings that are all parsable as floats or dates. If these strings should be plotted as numbers, cast to the appropriate data type before plotting.
+2026-06-03 13:14:48,944 [INFO] matplotlib.category: Using categorical units to plot a list of strings that are all parsable as floats or dates. If these strings should be plotted as numbers, cast to the appropriate data type before plotting.
+2026-06-03 13:14:48,944 [INFO] matplotlib.category: Using categorical units to plot a list of strings that are all parsable as floats or dates. If these strings should be plotted as numbers, cast to the appropriate data type before plotting.
+2026-06-03 13:14:48,979 [INFO] matplotlib.category: Using categorical units to plot a list of strings that are all parsable as floats or dates. If these strings should be plotted as numbers, cast to the appropriate data type before plotting.
+2026-06-03 13:14:48,980 [INFO] matplotlib.category: Using categorical units to plot a list of strings that are all parsable as floats or dates. If these strings should be plotted as numbers, cast to the appropriate data type before plotting.
+2026-06-03 13:14:48,982 [INFO] matplotlib.category: Using categorical units to plot a list of strings that are all parsable as floats or dates. If these strings should be plotted as numbers, cast to the appropriate data type before plotting.
+2026-06-03 13:14:48,983 [INFO] matplotlib.category: Using categorical units to plot a list of strings that are all parsable as floats or dates. If these strings should be plotted as numbers, cast to the appropriate data type before plotting.
+2026-06-03 13:14:49,236 [INFO] src.gui.main_window: FAR generated: BS=66 rows, PL=74 rows, Ratios=8
+2026-06-03 13:15:27,113 [INFO] src.core.excel_export: FAR workbook saved to C:/Users/shuhb/Downloads/Sunris1e_FAR_2025-26.xlsx
+2026-06-03 13:20:46,052 [INFO] __main__: Application exiting with code 0
+2026-06-03 13:20:48,788 [INFO] __main__: Application exiting with code 0
+2026-06-04 11:22:02,433 [INFO] __main__: ============================================================
+2026-06-04 11:22:02,434 [INFO] __main__: FAR Automation Tool started at 2026-06-04T11:22:02.434008
+2026-06-04 11:22:02,435 [INFO] __main__: Python 3.10.11 (tags/v3.10.11:7d4cc5a, Apr  5 2023, 00:38:17) [MSC v.1929 64 bit (AMD64)]
+2026-06-04 11:22:02,435 [INFO] __main__: Project root: D:\GT Work\far-automation
+2026-06-04 11:22:02,880 [INFO] __main__: Stylesheet loaded
+2026-06-04 11:22:09,425 [INFO] __main__: Main window shown
+2026-06-04 11:31:38,705 [INFO] src.core.cpp_bridge: C++ DLL not found at D:\GT Work\far-automation\cpp_engine\build\far_engine.dll — using Python fallback
+2026-06-04 11:31:39,392 [INFO] src.core.excel_parser: Client name extracted from row 1: Name of Client
+2026-06-04 11:31:39,393 [INFO] src.core.excel_parser: Date headers found: CY=2025 (col 7, row 7), PY=2024 (col 9, row 7)
+2026-06-04 11:31:39,394 [INFO] src.core.excel_parser: Parsed BS: 54 rows, CY=2025, PY=2024
+2026-06-04 11:31:39,998 [INFO] src.core.excel_parser: Client name extracted from row 1: Name of Client
+2026-06-04 11:31:39,999 [INFO] src.core.excel_parser: Date headers found: CY=2025 (col 5, row 7), PY=2024 (col 7, row 7)
+2026-06-04 11:31:40,000 [INFO] src.core.excel_parser: Parsed PL: 33 rows, CY=2025, PY=2024
+2026-06-04 11:31:40,659 [WARNING] src.core.excel_parser: Could not find two date header columns, found: []
+2026-06-04 11:31:40,660 [WARNING] src.core.excel_parser: Note 3: Could not find date columns — skipping
+2026-06-04 11:31:40,662 [WARNING] src.core.excel_parser: Could not find two date header columns, found: [(56, 2, 2024)]
+2026-06-04 11:31:40,662 [WARNING] src.core.excel_parser: Note 3A: Could not find date columns — skipping
+2026-06-04 11:31:40,664 [INFO] src.core.excel_parser: Date headers found: CY=2025 (col 9, row 83), PY=2024 (col 10, row 83)
+2026-06-04 11:31:40,667 [INFO] src.core.excel_parser: Date headers found: CY=2025 (col 10, row 8), PY=2024 (col 11, row 8)
+2026-06-04 11:31:40,670 [INFO] src.core.excel_parser: Date headers found: CY=2025 (col 10, row 39), PY=2024 (col 11, row 39)
+2026-06-04 11:31:40,674 [INFO] src.core.excel_parser: Date headers found: CY=2025 (col 10, row 61), PY=2024 (col 11, row 61)
+2026-06-04 11:31:40,679 [INFO] src.core.excel_parser: Date headers found: CY=2025 (col 10, row 82), PY=2024 (col 11, row 82)
+2026-06-04 11:31:40,682 [INFO] src.core.excel_parser: Date headers found: CY=2025 (col 10, row 126), PY=2024 (col 11, row 126)
+2026-06-04 11:31:40,686 [INFO] src.core.excel_parser: Date headers found: CY=2025 (col 10, row 139), PY=2024 (col 11, row 139)
+2026-06-04 11:31:40,689 [INFO] src.core.excel_parser: Date headers found: CY=2025 (col 10, row 148), PY=2024 (col 11, row 148)
+2026-06-04 11:31:40,693 [INFO] src.core.excel_parser: Date headers found: CY=2025 (col 10, row 161), PY=2025 (col 10, row 161)
+2026-06-04 11:31:40,697 [INFO] src.core.excel_parser: Date headers found: CY=2025 (col 10, row 195), PY=2024 (col 11, row 195)
+2026-06-04 11:31:40,702 [INFO] src.core.excel_parser: Date headers found: CY=2025 (col 10, row 10), PY=2024 (col 11, row 10)
+2026-06-04 11:31:40,707 [WARNING] src.core.excel_parser: Could not find two date header columns, found: []
+2026-06-04 11:31:40,708 [WARNING] src.core.excel_parser: Note 11: Could not find date columns — skipping
+2026-06-04 11:31:40,718 [INFO] src.core.excel_parser: Date headers found: CY=2025 (col 10, row 135), PY=2024 (col 11, row 135)
+2026-06-04 11:31:40,722 [WARNING] src.core.excel_parser: Could not find two date header columns, found: []
+2026-06-04 11:31:40,723 [WARNING] src.core.excel_parser: Note 12: Could not find date columns — skipping
+2026-06-04 11:31:40,733 [INFO] src.core.excel_parser: Date headers found: CY=2025 (col 10, row 213), PY=2024 (col 11, row 213)
+2026-06-04 11:31:40,739 [INFO] src.core.excel_parser: Date headers found: CY=2025 (col 10, row 233), PY=2024 (col 11, row 233)
+2026-06-04 11:31:40,743 [INFO] src.core.excel_parser: Date headers found: CY=2025 (col 10, row 263), PY=2024 (col 11, row 263)
+2026-06-04 11:31:40,748 [INFO] src.core.excel_parser: Date headers found: CY=2025 (col 10, row 275), PY=2024 (col 11, row 275)
+2026-06-04 11:31:40,752 [INFO] src.core.excel_parser: Date headers found: CY=2025 (col 10, row 293), PY=2024 (col 11, row 293)
+2026-06-04 11:31:40,757 [INFO] src.core.excel_parser: Date headers found: CY=2025 (col 10, row 338), PY=2024 (col 11, row 338)
+2026-06-04 11:31:40,762 [INFO] src.core.excel_parser: Date headers found: CY=2025 (col 10, row 356), PY=2024 (col 11, row 356)
+2026-06-04 11:31:40,768 [INFO] src.core.excel_parser: Date headers found: CY=2025 (col 10, row 368), PY=2024 (col 11, row 368)
+2026-06-04 11:31:40,777 [INFO] src.core.excel_parser: Date headers found: CY=2025 (col 9, row 9), PY=2024 (col 10, row 9)
+2026-06-04 11:31:40,785 [INFO] src.core.excel_parser: Date headers found: CY=2025 (col 9, row 19), PY=2024 (col 10, row 19)
+2026-06-04 11:31:40,792 [INFO] src.core.excel_parser: Date headers found: CY=2025 (col 9, row 38), PY=2024 (col 10, row 38)
+2026-06-04 11:31:40,799 [WARNING] src.core.excel_parser: Could not find two date header columns, found: [(53, 10, 2025)]
+2026-06-04 11:31:40,801 [WARNING] src.core.excel_parser: Note 21: Could not find date columns — skipping
+2026-06-04 11:31:40,809 [INFO] src.core.excel_parser: Date headers found: CY=2025 (col 9, row 68), PY=2024 (col 10, row 68)
+2026-06-04 11:31:40,816 [INFO] src.core.excel_parser: Date headers found: CY=2025 (col 9, row 80), PY=2024 (col 10, row 80)
+2026-06-04 11:31:40,826 [INFO] src.core.excel_parser: Date headers found: CY=2025 (col 9, row 122), PY=2024 (col 10, row 122)
+2026-06-04 11:31:40,836 [INFO] src.core.excel_parser: Date headers found: CY=2025 (col 9, row 137), PY=2024 (col 10, row 137)
+2026-06-04 11:31:40,847 [INFO] src.core.excel_parser: Date headers found: CY=2025 (col 9, row 165), PY=2024 (col 10, row 165)
+2026-06-04 11:31:40,855 [INFO] src.core.excel_parser: Date headers found: CY=2025 (col 9, row 195), PY=2024 (col 10, row 195)
+2026-06-04 11:31:40,866 [INFO] src.core.excel_parser: Date headers found: CY=2025 (col 9, row 223), PY=2024 (col 10, row 223)
+2026-06-04 11:31:40,879 [INFO] src.core.excel_parser: Date headers found: CY=2025 (col 9, row 258), PY=2024 (col 2, row 258)
+2026-06-04 11:31:40,890 [INFO] src.core.excel_parser: Date headers found: CY=2025 (col 9, row 277), PY=2024 (col 10, row 277)
+2026-06-04 11:31:40,902 [INFO] src.core.excel_parser: Date headers found: CY=2025 (col 9, row 316), PY=2025 (col 2, row 316)
+2026-06-04 11:31:40,907 [INFO] src.core.excel_parser: Parsed notes from 4 sheets
+2026-06-04 11:31:40,918 [INFO] src.core.excel_parser: Found non-zero value for 'trade receivables' on row 'Trade receivables': CY=8607499.12, PY=2012487.00
+2026-06-04 11:31:40,919 [INFO] src.core.excel_parser: BS Summary: total_ca=258300405, total_cl=256966044, debtors=8607499, equity=17122765
+2026-06-04 11:31:40,919 [WARNING] src.core.excel_parser: Keyword 'revenue from operations' matched row 'Revenue from operations' but value is ZERO — may be a heading row; scanning further
+2026-06-04 11:31:40,919 [INFO] src.core.excel_parser: Found non-zero value for 'software services' on row '- Software services': CY=10984519.00, PY=14480207.00
+2026-06-04 11:31:40,919 [INFO] src.core.excel_parser: Found non-zero value for 'total income' on row 'Total income': CY=26887946.00, PY=50946209.00
+2026-06-04 11:31:40,920 [INFO] src.core.excel_parser: PBT found: row='Profit / (Loss) before exceptional and extraordinary items and tax', CY=-2956284.00, PY=19400000.00
+2026-06-04 11:31:40,920 [WARNING] src.core.excel_parser: PAT: Could not find Profit After Tax row — falling back to PBT (-2956284.00). Net Profit Ratio may be slightly overstated (ignores tax).
+2026-06-04 11:31:40,921 [INFO] src.core.excel_parser: Found non-zero value for 'finance charge' on row 'Finance charges': CY=11760865.00, PY=14031849.00
+2026-06-04 11:31:40,921 [INFO] src.core.excel_parser: PL Summary: revenue_ops=10984519, pbt=-2956284, pat=-2956284, finance_cost=11760865
+2026-06-04 11:31:40,922 [INFO] src.core.cpp_bridge: Ratio inputs — revenue_ops: CY=10984519 PY=14480207 | pat: CY=-2956284 PY=19400000 | debtors: CY=8607499 PY=2012487 (avg_cy=5309993) | total_ca: CY=258300405 PY=248841999 | total_cl: CY=256966044 PY=9579438
+2026-06-04 11:31:40,922 [INFO] src.core.cpp_bridge: RATIO 'Debt Equity Ratio': CY=14.6329, PY=3.6661, Change=299.14%
+2026-06-04 11:31:40,922 [INFO] src.core.cpp_bridge: RATIO 'Current Ratio': CY=1.0052, PY=25.9767, Change=-96.13%
+2026-06-04 11:31:40,922 [INFO] src.core.cpp_bridge: RATIO 'GCA Days': CY=3506.3909, PY=1782.8084, Change=96.68%
+2026-06-04 11:31:40,922 [INFO] src.core.cpp_bridge: RATIO 'Total Outside Liab. vs Total Equity': CY=15.0787, PY=3.7817, Change=298.73%
+2026-06-04 11:31:40,923 [INFO] src.core.cpp_bridge: RATIO 'Net Profit Ratio': CY=-26.9132, PY=133.9760, Change=-120.09%
+2026-06-04 11:31:40,923 [INFO] src.core.cpp_bridge: RATIO 'Return on Equity (ROE)': CY=-7.0978, PY=29.3147, Change=-124.21%
+2026-06-04 11:31:40,923 [INFO] src.core.cpp_bridge: RATIO 'Return on Capital Employed (ROCE)': CY=3.2892, PY=10.8266, Change=-69.62%
+2026-06-04 11:31:40,923 [INFO] src.core.cpp_bridge: RATIO 'Debtor Turnover Ratio': CY=2.0687, PY=7.1952, Change=-71.25%
+2026-06-04 11:31:40,927 [INFO] src.core.validation: VALIDATION PASS — ✓ Balance Sheet identity: Assets=275,311,308 ≈ Equity+Liabilities=275,311,308 (diff=0, within tolerance 275,311)
+2026-06-04 11:31:40,927 [INFO] src.core.validation: VALIDATION PASS — ✓ Revenue from Operations > 0: Revenue = 10,984,519
+2026-06-04 11:31:40,927 [INFO] src.core.validation: VALIDATION PASS — ✓ Average Trade Receivables > 0: CY=8,607,499, PY=2,012,487, Avg=5,309,993
+2026-06-04 11:31:40,927 [INFO] src.core.validation: VALIDATION PASS — ✓ Ratio 'Current Ratio': CY=1.0052 (non-zero)
+2026-06-04 11:31:40,928 [INFO] src.core.validation: VALIDATION PASS — ✓ Ratio 'Net Profit Ratio': CY=-26.9132 (non-zero)
+2026-06-04 11:31:40,928 [INFO] src.core.validation: VALIDATION PASS — ✓ Ratio 'Return on Equity (ROE)': CY=-7.0978 (non-zero)
+2026-06-04 11:31:40,928 [INFO] src.core.validation: VALIDATION PASS — ✓ Ratio 'Return on Capital Employed (ROCE)': CY=3.2892 (non-zero)
+2026-06-04 11:31:40,928 [INFO] src.core.validation: VALIDATION PASS — ✓ Ratio 'Debtor Turnover Ratio': CY=2.0687 (non-zero)
+2026-06-04 11:31:40,929 [INFO] src.core.validation: VALIDATION PASS — ✓ P&L mapping: Revenue from Operations: = 10,984,519
+2026-06-04 11:31:40,929 [INFO] src.core.validation: VALIDATION PASS — ✓ P&L mapping: Profit Before Tax: = -2,956,284
+2026-06-04 11:31:40,929 [INFO] src.core.validation: VALIDATION PASS — ✓ P&L mapping: Profit After Tax: = -2,956,284
+2026-06-04 11:31:40,929 [INFO] src.core.validation: VALIDATION PASS — ✓ BS mapping: Total Current Assets: = 258,300,405
+2026-06-04 11:31:40,930 [INFO] src.core.validation: VALIDATION PASS — ✓ BS mapping: Total Current Liabilities: = 256,966,044
+2026-06-04 11:31:40,930 [INFO] src.core.validation: VALIDATION PASS — ✓ BS mapping: Total Equity: = 17,122,765
+2026-06-04 11:31:40,930 [INFO] src.core.validation: VALIDATION PASS — ✓ BS mapping: Trade Receivables: = 8,607,499
+2026-06-04 11:31:40,930 [INFO] src.core.validation: VALIDATION PASS — ✓ BS row count: 54 rows parsed
+2026-06-04 11:31:40,931 [INFO] src.core.validation: VALIDATION PASS — ✓ P&L row count: 33 rows parsed
+2026-06-04 11:31:40,931 [INFO] src.core.validation: Validation complete: 17 passed, 0 warnings, 0 failed, 0 auto-corrected
+2026-06-04 11:31:40,931 [INFO] src.core.validation: ============================================================
+FAR VALIDATION REPORT
+============================================================
+
+PASSED CHECKS:
+  ✓ Balance Sheet identity: Assets=275,311,308 ≈ Equity+Liabilities=275,311,308 (diff=0, within tolerance 275,311)
+  ✓ Revenue from Operations > 0: Revenue = 10,984,519
+  ✓ Average Trade Receivables > 0: CY=8,607,499, PY=2,012,487, Avg=5,309,993
+  ✓ Ratio 'Current Ratio': CY=1.0052 (non-zero)
+  ✓ Ratio 'Net Profit Ratio': CY=-26.9132 (non-zero)
+  ✓ Ratio 'Return on Equity (ROE)': CY=-7.0978 (non-zero)
+  ✓ Ratio 'Return on Capital Employed (ROCE)': CY=3.2892 (non-zero)
+  ✓ Ratio 'Debtor Turnover Ratio': CY=2.0687 (non-zero)
+  ✓ P&L mapping: Revenue from Operations: = 10,984,519
+  ✓ P&L mapping: Profit Before Tax: = -2,956,284
+  ✓ P&L mapping: Profit After Tax: = -2,956,284
+  ✓ BS mapping: Total Current Assets: = 258,300,405
+  ✓ BS mapping: Total Current Liabilities: = 256,966,044
+  ✓ BS mapping: Total Equity: = 17,122,765
+  ✓ BS mapping: Trade Receivables: = 8,607,499
+  ✓ BS row count: 54 rows parsed
+  ✓ P&L row count: 33 rows parsed
+============================================================
+2026-06-04 11:31:41,548 [INFO] matplotlib.category: Using categorical units to plot a list of strings that are all parsable as floats or dates. If these strings should be plotted as numbers, cast to the appropriate data type before plotting.
+2026-06-04 11:31:41,550 [INFO] matplotlib.category: Using categorical units to plot a list of strings that are all parsable as floats or dates. If these strings should be plotted as numbers, cast to the appropriate data type before plotting.
+2026-06-04 11:31:41,550 [INFO] matplotlib.category: Using categorical units to plot a list of strings that are all parsable as floats or dates. If these strings should be plotted as numbers, cast to the appropriate data type before plotting.
+2026-06-04 11:31:41,571 [INFO] matplotlib.category: Using categorical units to plot a list of strings that are all parsable as floats or dates. If these strings should be plotted as numbers, cast to the appropriate data type before plotting.
+2026-06-04 11:31:41,572 [INFO] matplotlib.category: Using categorical units to plot a list of strings that are all parsable as floats or dates. If these strings should be plotted as numbers, cast to the appropriate data type before plotting.
+2026-06-04 11:31:41,572 [INFO] matplotlib.category: Using categorical units to plot a list of strings that are all parsable as floats or dates. If these strings should be plotted as numbers, cast to the appropriate data type before plotting.
+2026-06-04 11:31:41,574 [INFO] matplotlib.category: Using categorical units to plot a list of strings that are all parsable as floats or dates. If these strings should be plotted as numbers, cast to the appropriate data type before plotting.
+2026-06-04 11:31:41,575 [INFO] matplotlib.category: Using categorical units to plot a list of strings that are all parsable as floats or dates. If these strings should be plotted as numbers, cast to the appropriate data type before plotting.
+2026-06-04 11:31:41,576 [INFO] matplotlib.category: Using categorical units to plot a list of strings that are all parsable as floats or dates. If these strings should be plotted as numbers, cast to the appropriate data type before plotting.
+2026-06-04 11:31:41,597 [INFO] matplotlib.category: Using categorical units to plot a list of strings that are all parsable as floats or dates. If these strings should be plotted as numbers, cast to the appropriate data type before plotting.
+2026-06-04 11:31:41,598 [INFO] matplotlib.category: Using categorical units to plot a list of strings that are all parsable as floats or dates. If these strings should be plotted as numbers, cast to the appropriate data type before plotting.
+2026-06-04 11:31:41,600 [INFO] matplotlib.category: Using categorical units to plot a list of strings that are all parsable as floats or dates. If these strings should be plotted as numbers, cast to the appropriate data type before plotting.
+2026-06-04 11:31:41,600 [INFO] matplotlib.category: Using categorical units to plot a list of strings that are all parsable as floats or dates. If these strings should be plotted as numbers, cast to the appropriate data type before plotting.
+2026-06-04 11:31:41,861 [INFO] src.gui.main_window: FAR generated: BS=54 rows, PL=33 rows, Ratios=8
+2026-06-04 11:32:54,902 [INFO] src.core.excel_export: FAR workbook saved to D:/GT Work/FAR/SHUBH_FAR_20215-26.xlsx
+2026-06-04 11:42:48,876 [INFO] matplotlib.category: Using categorical units to plot a list of strings that are all parsable as floats or dates. If these strings should be plotted as numbers, cast to the appropriate data type before plotting.
+2026-06-04 11:42:48,877 [INFO] matplotlib.category: Using categorical units to plot a list of strings that are all parsable as floats or dates. If these strings should be plotted as numbers, cast to the appropriate data type before plotting.
+2026-06-04 11:42:48,878 [INFO] matplotlib.category: Using categorical units to plot a list of strings that are all parsable as floats or dates. If these strings should be plotted as numbers, cast to the appropriate data type before plotting.
+2026-06-04 11:42:48,879 [INFO] matplotlib.category: Using categorical units to plot a list of strings that are all parsable as floats or dates. If these strings should be plotted as numbers, cast to the appropriate data type before plotting.
+2026-06-04 11:43:38,896 [INFO] src.core.docx_export: FAR Word document saved to D:/GT Work/FAR/SHUBrH_FAR_2025-26.docx
+2026-06-04 11:44:02,058 [INFO] src.core.excel_export: FAR workbook saved to D:/GT Work/FAR/SHUeBH_FAR_2025-26.xlsx
+2026-06-09 11:41:58,536 [INFO] __main__: ============================================================
+2026-06-09 11:41:58,537 [INFO] __main__: FAR Automation Tool started at 2026-06-09T11:41:58.537013
+2026-06-09 11:41:58,537 [INFO] __main__: Python 3.10.11 (tags/v3.10.11:7d4cc5a, Apr  5 2023, 00:38:17) [MSC v.1929 64 bit (AMD64)]
+2026-06-09 11:41:58,537 [INFO] __main__: Project root: D:\GT Work\far-automation
+2026-06-09 11:41:58,976 [INFO] __main__: Stylesheet loaded
+2026-06-09 11:42:06,208 [INFO] __main__: Main window shown
+2026-06-09 12:05:03,869 [INFO] src.core.cpp_bridge: C++ DLL not found at D:\GT Work\far-automation\cpp_engine\build\far_engine.dll — using Python fallback
+2026-06-09 12:05:04,465 [INFO] src.core.excel_parser: Client name extracted from row 1: Name of Client
+2026-06-09 12:05:04,466 [INFO] src.core.excel_parser: Date headers found: CY=2025 (col 7, row 7), PY=2024 (col 9, row 7)
+2026-06-09 12:05:04,477 [INFO] src.core.excel_parser: Parsed BS: 54 rows, CY=2025, PY=2024
+2026-06-09 12:05:05,004 [INFO] src.core.excel_parser: Client name extracted from row 1: Name of Client
+2026-06-09 12:05:05,006 [INFO] src.core.excel_parser: Date headers found: CY=2025 (col 5, row 7), PY=2024 (col 7, row 7)
+2026-06-09 12:05:05,008 [INFO] src.core.excel_parser: Parsed PL: 33 rows, CY=2025, PY=2024
+2026-06-09 12:05:05,589 [WARNING] src.core.excel_parser: Could not find two date header columns, found: []
+2026-06-09 12:05:05,589 [WARNING] src.core.excel_parser: Note 3: Could not find date columns — skipping
+2026-06-09 12:05:05,591 [WARNING] src.core.excel_parser: Could not find two date header columns, found: [(56, 2, 2024)]
+2026-06-09 12:05:05,592 [WARNING] src.core.excel_parser: Note 3A: Could not find date columns — skipping
+2026-06-09 12:05:05,594 [INFO] src.core.excel_parser: Date headers found: CY=2025 (col 9, row 83), PY=2024 (col 10, row 83)
+2026-06-09 12:05:05,597 [INFO] src.core.excel_parser: Date headers found: CY=2025 (col 10, row 8), PY=2024 (col 11, row 8)
+2026-06-09 12:05:05,600 [INFO] src.core.excel_parser: Date headers found: CY=2025 (col 10, row 39), PY=2024 (col 11, row 39)
+2026-06-09 12:05:05,604 [INFO] src.core.excel_parser: Date headers found: CY=2025 (col 10, row 61), PY=2024 (col 11, row 61)
+2026-06-09 12:05:05,607 [INFO] src.core.excel_parser: Date headers found: CY=2025 (col 10, row 82), PY=2024 (col 11, row 82)
+2026-06-09 12:05:05,611 [INFO] src.core.excel_parser: Date headers found: CY=2025 (col 10, row 126), PY=2024 (col 11, row 126)
+2026-06-09 12:05:05,615 [INFO] src.core.excel_parser: Date headers found: CY=2025 (col 10, row 139), PY=2024 (col 11, row 139)
+2026-06-09 12:05:05,618 [INFO] src.core.excel_parser: Date headers found: CY=2025 (col 10, row 148), PY=2024 (col 11, row 148)
+2026-06-09 12:05:05,623 [INFO] src.core.excel_parser: Date headers found: CY=2025 (col 10, row 161), PY=2025 (col 10, row 161)
+2026-06-09 12:05:05,627 [INFO] src.core.excel_parser: Date headers found: CY=2025 (col 10, row 195), PY=2024 (col 11, row 195)
+2026-06-09 12:05:05,635 [INFO] src.core.excel_parser: Date headers found: CY=2025 (col 10, row 10), PY=2024 (col 11, row 10)
+2026-06-09 12:05:05,640 [WARNING] src.core.excel_parser: Could not find two date header columns, found: []
+2026-06-09 12:05:05,640 [WARNING] src.core.excel_parser: Note 11: Could not find date columns — skipping
+2026-06-09 12:05:05,650 [INFO] src.core.excel_parser: Date headers found: CY=2025 (col 10, row 135), PY=2024 (col 11, row 135)
+2026-06-09 12:05:05,654 [WARNING] src.core.excel_parser: Could not find two date header columns, found: []
+2026-06-09 12:05:05,655 [WARNING] src.core.excel_parser: Note 12: Could not find date columns — skipping
+2026-06-09 12:05:05,666 [INFO] src.core.excel_parser: Date headers found: CY=2025 (col 10, row 213), PY=2024 (col 11, row 213)
+2026-06-09 12:05:05,670 [INFO] src.core.excel_parser: Date headers found: CY=2025 (col 10, row 233), PY=2024 (col 11, row 233)
+2026-06-09 12:05:05,675 [INFO] src.core.excel_parser: Date headers found: CY=2025 (col 10, row 263), PY=2024 (col 11, row 263)
+2026-06-09 12:05:05,680 [INFO] src.core.excel_parser: Date headers found: CY=2025 (col 10, row 275), PY=2024 (col 11, row 275)
+2026-06-09 12:05:05,685 [INFO] src.core.excel_parser: Date headers found: CY=2025 (col 10, row 293), PY=2024 (col 11, row 293)
+2026-06-09 12:05:05,689 [INFO] src.core.excel_parser: Date headers found: CY=2025 (col 10, row 338), PY=2024 (col 11, row 338)
+2026-06-09 12:05:05,695 [INFO] src.core.excel_parser: Date headers found: CY=2025 (col 10, row 356), PY=2024 (col 11, row 356)
+2026-06-09 12:05:05,700 [INFO] src.core.excel_parser: Date headers found: CY=2025 (col 10, row 368), PY=2024 (col 11, row 368)
+2026-06-09 12:05:05,709 [INFO] src.core.excel_parser: Date headers found: CY=2025 (col 9, row 9), PY=2024 (col 10, row 9)
+2026-06-09 12:05:05,716 [INFO] src.core.excel_parser: Date headers found: CY=2025 (col 9, row 19), PY=2024 (col 10, row 19)
+2026-06-09 12:05:05,722 [INFO] src.core.excel_parser: Date headers found: CY=2025 (col 9, row 38), PY=2024 (col 10, row 38)
+2026-06-09 12:05:05,729 [WARNING] src.core.excel_parser: Could not find two date header columns, found: [(53, 10, 2025)]
+2026-06-09 12:05:05,730 [WARNING] src.core.excel_parser: Note 21: Could not find date columns — skipping
+2026-06-09 12:05:05,740 [INFO] src.core.excel_parser: Date headers found: CY=2025 (col 9, row 68), PY=2024 (col 10, row 68)
+2026-06-09 12:05:05,754 [INFO] src.core.excel_parser: Date headers found: CY=2025 (col 9, row 80), PY=2024 (col 10, row 80)
+2026-06-09 12:05:05,762 [INFO] src.core.excel_parser: Date headers found: CY=2025 (col 9, row 122), PY=2024 (col 10, row 122)
+2026-06-09 12:05:05,771 [INFO] src.core.excel_parser: Date headers found: CY=2025 (col 9, row 137), PY=2024 (col 10, row 137)
+2026-06-09 12:05:05,780 [INFO] src.core.excel_parser: Date headers found: CY=2025 (col 9, row 165), PY=2024 (col 10, row 165)
+2026-06-09 12:05:05,793 [INFO] src.core.excel_parser: Date headers found: CY=2025 (col 9, row 195), PY=2024 (col 10, row 195)
+2026-06-09 12:05:05,802 [INFO] src.core.excel_parser: Date headers found: CY=2025 (col 9, row 223), PY=2024 (col 10, row 223)
+2026-06-09 12:05:05,813 [INFO] src.core.excel_parser: Date headers found: CY=2025 (col 9, row 258), PY=2024 (col 2, row 258)
+2026-06-09 12:05:05,822 [INFO] src.core.excel_parser: Date headers found: CY=2025 (col 9, row 277), PY=2024 (col 10, row 277)
+2026-06-09 12:05:05,834 [INFO] src.core.excel_parser: Date headers found: CY=2025 (col 9, row 316), PY=2025 (col 2, row 316)
+2026-06-09 12:05:05,836 [INFO] src.core.excel_parser: Parsed notes from 4 sheets
+2026-06-09 12:05:05,854 [INFO] src.core.excel_parser: Found non-zero value for 'trade receivables' on row 'Trade receivables': CY=8607499.12, PY=2012487.00
+2026-06-09 12:05:05,855 [INFO] src.core.excel_parser: BS Summary: total_ca=258300405, total_cl=256966044, debtors=8607499, equity=17122765
+2026-06-09 12:05:05,855 [WARNING] src.core.excel_parser: Keyword 'revenue from operations' matched row 'Revenue from operations' but value is ZERO — may be a heading row; scanning further
+2026-06-09 12:05:05,855 [INFO] src.core.excel_parser: Found non-zero value for 'software services' on row '- Software services': CY=10984519.00, PY=14480207.00
+2026-06-09 12:05:05,856 [INFO] src.core.excel_parser: Found non-zero value for 'total income' on row 'Total income': CY=26887946.00, PY=50946209.00
+2026-06-09 12:05:05,856 [INFO] src.core.excel_parser: PBT found: row='Profit / (Loss) before exceptional and extraordinary items and tax', CY=-2956284.00, PY=19400000.00
+2026-06-09 12:05:05,856 [WARNING] src.core.excel_parser: PAT: Could not find Profit After Tax row — falling back to PBT (-2956284.00). Net Profit Ratio may be slightly overstated (ignores tax).
+2026-06-09 12:05:05,857 [INFO] src.core.excel_parser: Found non-zero value for 'finance charge' on row 'Finance charges': CY=11760865.00, PY=14031849.00
+2026-06-09 12:05:05,857 [INFO] src.core.excel_parser: PL Summary: revenue_ops=10984519, pbt=-2956284, pat=-2956284, finance_cost=11760865
+2026-06-09 12:05:05,857 [INFO] src.core.cpp_bridge: Ratio inputs — revenue_ops: CY=10984519 PY=14480207 | pat: CY=-2956284 PY=19400000 | debtors: CY=8607499 PY=2012487 (avg_cy=5309993) | total_ca: CY=258300405 PY=248841999 | total_cl: CY=256966044 PY=9579438
+2026-06-09 12:05:05,857 [INFO] src.core.cpp_bridge: RATIO 'Debt Equity Ratio': CY=14.6329, PY=3.6661, Change=299.14%
+2026-06-09 12:05:05,858 [INFO] src.core.cpp_bridge: RATIO 'Current Ratio': CY=1.0052, PY=25.9767, Change=-96.13%
+2026-06-09 12:05:05,858 [INFO] src.core.cpp_bridge: RATIO 'GCA Days': CY=3506.3909, PY=1782.8084, Change=96.68%
+2026-06-09 12:05:05,858 [INFO] src.core.cpp_bridge: RATIO 'Total Outside Liab. vs Total Equity': CY=15.0787, PY=3.7817, Change=298.73%
+2026-06-09 12:05:05,858 [INFO] src.core.cpp_bridge: RATIO 'Net Profit Ratio': CY=-26.9132, PY=133.9760, Change=-120.09%
+2026-06-09 12:05:05,859 [INFO] src.core.cpp_bridge: RATIO 'Return on Equity (ROE)': CY=-7.0978, PY=29.3147, Change=-124.21%
+2026-06-09 12:05:05,859 [INFO] src.core.cpp_bridge: RATIO 'Return on Capital Employed (ROCE)': CY=3.2892, PY=10.8266, Change=-69.62%
+2026-06-09 12:05:05,859 [INFO] src.core.cpp_bridge: RATIO 'Debtor Turnover Ratio': CY=2.0687, PY=7.1952, Change=-71.25%
+2026-06-09 12:05:05,863 [INFO] src.core.validation: VALIDATION PASS — ✓ Balance Sheet identity: Assets=275,311,308 ≈ Equity+Liabilities=275,311,308 (diff=0, within tolerance 275,311)
+2026-06-09 12:05:05,863 [INFO] src.core.validation: VALIDATION PASS — ✓ Revenue from Operations > 0: Revenue = 10,984,519
+2026-06-09 12:05:05,863 [INFO] src.core.validation: VALIDATION PASS — ✓ Average Trade Receivables > 0: CY=8,607,499, PY=2,012,487, Avg=5,309,993
+2026-06-09 12:05:05,864 [INFO] src.core.validation: VALIDATION PASS — ✓ Ratio 'Current Ratio': CY=1.0052 (non-zero)
+2026-06-09 12:05:05,864 [INFO] src.core.validation: VALIDATION PASS — ✓ Ratio 'Net Profit Ratio': CY=-26.9132 (non-zero)
+2026-06-09 12:05:05,864 [INFO] src.core.validation: VALIDATION PASS — ✓ Ratio 'Return on Equity (ROE)': CY=-7.0978 (non-zero)
+2026-06-09 12:05:05,864 [INFO] src.core.validation: VALIDATION PASS — ✓ Ratio 'Return on Capital Employed (ROCE)': CY=3.2892 (non-zero)
+2026-06-09 12:05:05,864 [INFO] src.core.validation: VALIDATION PASS — ✓ Ratio 'Debtor Turnover Ratio': CY=2.0687 (non-zero)
+2026-06-09 12:05:05,864 [INFO] src.core.validation: VALIDATION PASS — ✓ P&L mapping: Revenue from Operations: = 10,984,519
+2026-06-09 12:05:05,865 [INFO] src.core.validation: VALIDATION PASS — ✓ P&L mapping: Profit Before Tax: = -2,956,284
+2026-06-09 12:05:05,865 [INFO] src.core.validation: VALIDATION PASS — ✓ P&L mapping: Profit After Tax: = -2,956,284
+2026-06-09 12:05:05,865 [INFO] src.core.validation: VALIDATION PASS — ✓ BS mapping: Total Current Assets: = 258,300,405
+2026-06-09 12:05:05,865 [INFO] src.core.validation: VALIDATION PASS — ✓ BS mapping: Total Current Liabilities: = 256,966,044
+2026-06-09 12:05:05,866 [INFO] src.core.validation: VALIDATION PASS — ✓ BS mapping: Total Equity: = 17,122,765
+2026-06-09 12:05:05,866 [INFO] src.core.validation: VALIDATION PASS — ✓ BS mapping: Trade Receivables: = 8,607,499
+2026-06-09 12:05:05,866 [INFO] src.core.validation: VALIDATION PASS — ✓ BS row count: 54 rows parsed
+2026-06-09 12:05:05,866 [INFO] src.core.validation: VALIDATION PASS — ✓ P&L row count: 33 rows parsed
+2026-06-09 12:05:05,866 [INFO] src.core.validation: Validation complete: 17 passed, 0 warnings, 0 failed, 0 auto-corrected
+2026-06-09 12:05:05,866 [INFO] src.core.validation: ============================================================
+FAR VALIDATION REPORT
+============================================================
+
+PASSED CHECKS:
+  ✓ Balance Sheet identity: Assets=275,311,308 ≈ Equity+Liabilities=275,311,308 (diff=0, within tolerance 275,311)
+  ✓ Revenue from Operations > 0: Revenue = 10,984,519
+  ✓ Average Trade Receivables > 0: CY=8,607,499, PY=2,012,487, Avg=5,309,993
+  ✓ Ratio 'Current Ratio': CY=1.0052 (non-zero)
+  ✓ Ratio 'Net Profit Ratio': CY=-26.9132 (non-zero)
+  ✓ Ratio 'Return on Equity (ROE)': CY=-7.0978 (non-zero)
+  ✓ Ratio 'Return on Capital Employed (ROCE)': CY=3.2892 (non-zero)
+  ✓ Ratio 'Debtor Turnover Ratio': CY=2.0687 (non-zero)
+  ✓ P&L mapping: Revenue from Operations: = 10,984,519
+  ✓ P&L mapping: Profit Before Tax: = -2,956,284
+  ✓ P&L mapping: Profit After Tax: = -2,956,284
+  ✓ BS mapping: Total Current Assets: = 258,300,405
+  ✓ BS mapping: Total Current Liabilities: = 256,966,044
+  ✓ BS mapping: Total Equity: = 17,122,765
+  ✓ BS mapping: Trade Receivables: = 8,607,499
+  ✓ BS row count: 54 rows parsed
+  ✓ P&L row count: 33 rows parsed
+============================================================
+2026-06-09 12:05:06,510 [INFO] matplotlib.category: Using categorical units to plot a list of strings that are all parsable as floats or dates. If these strings should be plotted as numbers, cast to the appropriate data type before plotting.
+2026-06-09 12:05:06,512 [INFO] matplotlib.category: Using categorical units to plot a list of strings that are all parsable as floats or dates. If these strings should be plotted as numbers, cast to the appropriate data type before plotting.
+2026-06-09 12:05:06,514 [INFO] matplotlib.category: Using categorical units to plot a list of strings that are all parsable as floats or dates. If these strings should be plotted as numbers, cast to the appropriate data type before plotting.
+2026-06-09 12:05:06,536 [INFO] matplotlib.category: Using categorical units to plot a list of strings that are all parsable as floats or dates. If these strings should be plotted as numbers, cast to the appropriate data type before plotting.
+2026-06-09 12:05:06,537 [INFO] matplotlib.category: Using categorical units to plot a list of strings that are all parsable as floats or dates. If these strings should be plotted as numbers, cast to the appropriate data type before plotting.
+2026-06-09 12:05:06,538 [INFO] matplotlib.category: Using categorical units to plot a list of strings that are all parsable as floats or dates. If these strings should be plotted as numbers, cast to the appropriate data type before plotting.
+2026-06-09 12:05:06,539 [INFO] matplotlib.category: Using categorical units to plot a list of strings that are all parsable as floats or dates. If these strings should be plotted as numbers, cast to the appropriate data type before plotting.
+2026-06-09 12:05:06,539 [INFO] matplotlib.category: Using categorical units to plot a list of strings that are all parsable as floats or dates. If these strings should be plotted as numbers, cast to the appropriate data type before plotting.
+2026-06-09 12:05:06,540 [INFO] matplotlib.category: Using categorical units to plot a list of strings that are all parsable as floats or dates. If these strings should be plotted as numbers, cast to the appropriate data type before plotting.
+2026-06-09 12:05:06,560 [INFO] matplotlib.category: Using categorical units to plot a list of strings that are all parsable as floats or dates. If these strings should be plotted as numbers, cast to the appropriate data type before plotting.
+2026-06-09 12:05:06,561 [INFO] matplotlib.category: Using categorical units to plot a list of strings that are all parsable as floats or dates. If these strings should be plotted as numbers, cast to the appropriate data type before plotting.
+2026-06-09 12:05:06,562 [INFO] matplotlib.category: Using categorical units to plot a list of strings that are all parsable as floats or dates. If these strings should be plotted as numbers, cast to the appropriate data type before plotting.
+2026-06-09 12:05:06,562 [INFO] matplotlib.category: Using categorical units to plot a list of strings that are all parsable as floats or dates. If these strings should be plotted as numbers, cast to the appropriate data type before plotting.
+2026-06-09 12:05:06,838 [INFO] src.gui.main_window: FAR generated: BS=54 rows, PL=33 rows, Ratios=8
+2026-06-09 12:14:25,155 [INFO] matplotlib.category: Using categorical units to plot a list of strings that are all parsable as floats or dates. If these strings should be plotted as numbers, cast to the appropriate data type before plotting.
+2026-06-09 12:14:25,156 [INFO] matplotlib.category: Using categorical units to plot a list of strings that are all parsable as floats or dates. If these strings should be plotted as numbers, cast to the appropriate data type before plotting.
+2026-06-09 12:14:25,158 [INFO] matplotlib.category: Using categorical units to plot a list of strings that are all parsable as floats or dates. If these strings should be plotted as numbers, cast to the appropriate data type before plotting.
+2026-06-09 12:14:25,159 [INFO] matplotlib.category: Using categorical units to plot a list of strings that are all parsable as floats or dates. If these strings should be plotted as numbers, cast to the appropriate data type before plotting.
+2026-06-09 12:32:55,074 [INFO] __main__: Application exiting with code 0

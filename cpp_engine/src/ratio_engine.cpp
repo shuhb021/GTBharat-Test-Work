@@ -178,7 +178,7 @@ FAR_EXPORT const char* compute_ratios(const char* bs_json, const char* pl_json) 
 
             calc_ratio("Return on Equity (ROE)", "PBT / Avg. Total Equity",
                        pbt_cy, (total_equity_cy + total_equity_py) / 2.0,
-                       pbt_py, total_equity_py / 2.0, true),
+                       pbt_py, total_equity_py, true),
 
             calc_ratio("Return on Capital Employed (ROCE)", "(PBT + Finance Cost) / (TE + LTB + STB)",
                        pbt_cy + finance_cost_cy, total_equity_cy + ltb_cy + stb_cy,
