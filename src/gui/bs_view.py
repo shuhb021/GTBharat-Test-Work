@@ -135,8 +135,8 @@ class AnalysisTableView(QWidget):
         self.data = data
         self.remarks = remarks or {}
         
-        # Update header
         self.client_label.setText(f'Client: {client_name}')
+        self.rounding_unit = rounding_unit
         if cy_year and py_year:
             self.period_label.setText(
                 f'{self.date_prefix} 31 March {cy_year} vs 31 March {py_year}')
@@ -210,6 +210,9 @@ class AnalysisTableView(QWidget):
             v = float(value)
             if v == 0:
                 return '0'
+            unit = getattr(self, 'rounding_unit', 'Lakhs')
+            if unit in ('Lakhs', 'Millions', 'Actuals'):
+                return f'{v:,.2f}'
             return f'{v:,.0f}'
         except (ValueError, TypeError):
             return str(value)

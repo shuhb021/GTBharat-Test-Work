@@ -275,11 +275,14 @@ class MainWindow(QMainWindow):
         """Handle Generate FAR request from input form."""
         self.app_data['form'] = form_data
         
+        round_off = form_data.get('round_off', True)
+        rounding_unit = form_data.get('rounding_unit', 'Lakhs') if round_off else 'Actuals'
+        
         # Update top bar
         self.top_bar.update_info(
             form_data.get('client_name', ''),
             form_data.get('financial_year', ''),
-            form_data.get('rounding_unit', '')
+            rounding_unit
         )
         
         # Show progress dialog
@@ -319,6 +322,39 @@ class MainWindow(QMainWindow):
                     f"BS year ({bs_parsed['cy_year']}) and P&L year ({pl_parsed['cy_year']}) don't match!\n"
                     "Please check your files.")
                 return
+
+            # Scale parsed values by the rounding unit factor
+            round_off = form_data.get('round_off', True)
+            rounding_unit = form_data.get('rounding_unit', 'Lakhs') if round_off else 'Actuals'
+            factor = 1.0
+            decimals = 2
+            if round_off:
+                if rounding_unit == 'Thousands':
+                    factor = 1000.0
+                    decimals = 0
+                elif rounding_unit == 'Lakhs':
+                    factor = 100000.0
+                    decimals = 2
+                elif rounding_unit == 'Millions':
+                    factor = 1000000.0
+                    decimals = 2
+            else:
+                factor = 1.0
+                decimals = 2
+
+            # Scale BS data
+            for row in bs_parsed['data']:
+                if row.get('cy') is not None:
+                    row['cy'] = round(row['cy'] / factor, decimals)
+                if row.get('py') is not None:
+                    row['py'] = round(row['py'] / factor, decimals)
+
+            # Scale PL data
+            for row in pl_parsed['data']:
+                if row.get('cy') is not None:
+                    row['cy'] = round(row['cy'] / factor, decimals)
+                if row.get('py') is not None:
+                    row['py'] = round(row['py'] / factor, decimals)
             
             # Step 3: Parse Notes
             notes_result = {}
@@ -328,7 +364,19 @@ class MainWindow(QMainWindow):
                 QApplication.processEvents()
                 
                 for notes_file in form_data['notes_files']:
-                    notes_data = parse_notes(notes_file)
+                    notes_data = parse_notes(
+                        notes_file,
+                        cy_year=bs_parsed.get('cy_year', 2025),
+                        py_year=bs_parsed.get('py_year', 2024)
+                    )
+                    # Scale Notes data
+                    for sheet_name, note_groups in notes_data.items():
+                        for group in note_groups:
+                            for row in group.get('data', []):
+                                if row.get('cy') is not None:
+                                    row['cy'] = round(row['cy'] / factor, decimals)
+                                if row.get('py') is not None:
+                                    row['py'] = round(row['py'] / factor, decimals)
                     notes_result.update(notes_data)
             
             # Step 4: Compute variances via C++ engine
@@ -374,7 +422,7 @@ class MainWindow(QMainWindow):
             if not form_client_name and parsed_client_name:
                 logger.info("Using auto-extracted client name: %s", parsed_client_name)
             
-            rounding_unit = form_data.get('rounding_unit', 'Lakhs')
+            rounding_unit = form_data.get('rounding_unit', 'Lakhs') if round_off else 'Actuals'
             
             self.app_data.update({
                 'bs_result': bs_result,

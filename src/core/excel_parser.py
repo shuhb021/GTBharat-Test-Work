@@ -30,6 +30,8 @@ def _get_value(cell):
     if isinstance(v, str):
         # Try to parse as number after removing commas
         cleaned = v.replace(',', '').replace(' ', '').strip()
+        if cleaned.startswith('(') and cleaned.endswith(')'):
+            cleaned = '-' + cleaned[1:-1]
         try:
             return float(cleaned)
         except (ValueError, TypeError):
@@ -45,9 +47,9 @@ def _get_text(cell):
     return str(v).strip()
 
 
-def _find_date_columns(ws, search_rows=range(5, 12)):
+def _find_date_columns(ws, search_rows=range(5, 12), default_cy_year=2025, default_py_year=2024):
     """
-    Find CY and PY date header columns by scanning for datetime(YYYY, 3, 31) values.
+    Find CY and PY date header columns by scanning for datetime(YYYY, 3, 31) values or year text.
     Returns (cy_col, py_col, cy_year, py_year, header_row).
     """
     date_cells = []
@@ -55,25 +57,59 @@ def _find_date_columns(ws, search_rows=range(5, 12)):
         for col_idx in range(1, ws.max_column + 1):
             cell = ws.cell(row=row_idx, column=col_idx)
             v = cell.value
-            if isinstance(v, datetime) and v.month == 3 and v.day == 31:
+            if isinstance(v, datetime):
                 date_cells.append((row_idx, col_idx, v.year))
             elif isinstance(v, str):
-                # Check for text like "As at 31 March 2025" or "31 March 2025"
-                m = re.search(r'31\s*(?:st\s*)?March\s*(\d{4})', v, re.IGNORECASE)
+                # Check for text like "As at 31 March 2025", "31st March, 2025", "20XX"
+                m = re.search(r'31\s*(?:st|th)?\s*Mar(?:ch)?\s*[,.]?\s*(\d{4}|20XX)', v, re.IGNORECASE)
                 if m:
-                    date_cells.append((row_idx, col_idx, int(m.group(1))))
+                    yr_str = m.group(1).upper()
+                    if yr_str == '20XX':
+                        date_cells.append((row_idx, col_idx, '20XX'))
+                    else:
+                        date_cells.append((row_idx, col_idx, int(yr_str)))
+                else:
+                    # Look for standalone "2024" or "2025"
+                    m2 = re.search(r'\b(20\d{2})\b', v)
+                    if m2:
+                        date_cells.append((row_idx, col_idx, int(m2.group(1))))
 
     if len(date_cells) < 2:
         logger.warning("Could not find two date header columns, found: %s", date_cells)
         return None, None, None, None, None
 
-    # Sort by year descending — highest year is CY
-    date_cells.sort(key=lambda x: x[2], reverse=True)
-    cy_row, cy_col, cy_year = date_cells[0]
-    py_row, py_col, py_year = date_cells[1]
-    header_row = cy_row
+    # Group by row, we need a row with at least 2 dates
+    row_groups = {}
+    for r, c, y in date_cells:
+        row_groups.setdefault(r, []).append((c, y))
+    
+    valid_rows = {r: dates for r, dates in row_groups.items() if len(dates) >= 2}
+    if not valid_rows:
+        logger.warning("No single row had at least two date headers.")
+        return None, None, None, None, None
+        
+    # Take the first valid row
+    header_row = min(valid_rows.keys())
+    dates_in_row = valid_rows[header_row]
+    
+    # Sort columns from left to right
+    dates_in_row.sort(key=lambda x: x[0])
+    
+    # Assume left is CY and right is PY if it's 20XX
+    if dates_in_row[0][1] == '20XX' or dates_in_row[1][1] == '20XX':
+        cy_col = dates_in_row[0][0]
+        cy_year = default_cy_year
+        py_col = dates_in_row[1][0]
+        py_year = default_py_year
+    else:
+        # Sort by year descending — highest year is CY
+        dates_in_row.sort(key=lambda x: x[1], reverse=True)
+        cy_col = dates_in_row[0][0]
+        cy_year = dates_in_row[0][1]
+        py_col = dates_in_row[1][0]
+        py_year = dates_in_row[1][1]
 
-    logger.info("Date headers found: CY=%d (col %d, row %d), PY=%d (col %d, row %d)",
+    logger.info("Date headers found: CY=%s (col %d, row %d), PY=%s (col %d, row %d)",
                 cy_year, cy_col, header_row, py_year, py_col, header_row)
     return cy_col, py_col, cy_year, py_year, header_row
 
@@ -274,7 +310,7 @@ def parse_profit_loss(filepath):
     }
 
 
-def parse_notes(filepath):
+def parse_notes(filepath, cy_year=2025, py_year=2024):
     """
     Parse Notes to Accounts from client Excel file.
     Handles multiple sheets (3-4, 5-9, 10-17, 18-26) each containing
@@ -307,7 +343,7 @@ def parse_notes(filepath):
             continue
 
         ws = wb[sheet_name]
-        notes_groups = _parse_notes_sheet(ws)
+        notes_groups = _parse_notes_sheet(ws, cy_year, py_year)
         if notes_groups:
             result[sheet_name] = notes_groups
         else:
@@ -321,46 +357,101 @@ def parse_notes(filepath):
     return result
 
 
-def _parse_notes_sheet(ws):
+def _is_note_heading(ws, row_idx):
+    """Check if a row starts a new note group and return (note_num, note_heading) or (None, None)."""
+    a_cell = ws.cell(row=row_idx, column=1)
+    b_cell = ws.cell(row=row_idx, column=2)
+
+    note_num = None
+    note_heading = ''
+
+    # 1. Check if column A has a note number (can be bold or not, but must match pattern)
+    if a_cell.value is not None:
+        a_val = str(a_cell.value).strip()
+        if re.match(r'^\d+[A-Za-z]?$', a_val):
+            note_num = a_val
+            note_heading = _get_text(b_cell)
+            return note_num, note_heading
+
+    # 2. Check if column B contains "Note X:" pattern
+    if b_cell.value is not None:
+        b_val = str(b_cell.value).strip()
+        m = re.match(r'^Note\s*(\d+[A-Za-z]?)\s*[:\-]?\s*(.*)$', b_val, re.IGNORECASE)
+        if m:
+            note_num = m.group(1)
+            note_heading = m.group(2).strip()
+            return note_num, note_heading
+
+    # 3. Fallback for known headings in column B (must be bold to avoid false positives)
+    if b_cell.value is not None and _is_bold(b_cell):
+        b_val = str(b_cell.value).strip()
+        lower_b = b_val.lower()
+        if any(kw in lower_b for kw in ['property', 'plant', 'equipment', 'intangible', 'right of use', 'right-of-use', 'rou', 'ppe']):
+            note_heading = b_val
+            if 'intangible' in lower_b:
+                note_num = '3'
+            elif 'right' in lower_b or 'rou' in lower_b:
+                note_num = '3A'
+            else:
+                note_num = '3'
+            return note_num, note_heading
+
+    return None, None
+
+
+def _parse_notes_sheet(ws, cy_year=2025, py_year=2024):
     """Parse a single notes sheet, extracting all note groups."""
     notes = []
 
-    # Scan for note headings: look for cells with pattern "N <heading>" where N is bold number
     row = 1
     while row <= ws.max_row:
-        # Look for note number in col A (bold integer)
-        a_cell = ws.cell(row=row, column=1)
-        b_cell = ws.cell(row=row, column=2)
-
-        note_num = None
-        note_heading = ''
-
-        # Check col A for note number
-        if a_cell.value is not None and _is_bold(a_cell):
-            a_val = str(a_cell.value).strip()
-            if re.match(r'^\d+[A-Za-z]?$', a_val):
-                note_num = a_val
-                note_heading = _get_text(b_cell)
+        note_num, note_heading = _is_note_heading(ws, row)
 
         if note_num is None:
             row += 1
             continue
 
         # Found a note heading. Now find the date headers below it.
-        cy_col, py_col, cy_year, py_year, date_row = _find_date_columns(
-            ws, search_rows=range(row, min(row + 10, ws.max_row + 1)))
-
-        if cy_col is None:
-            # No date columns found — try to use standard B/C/D layout from template
-            # Some notes use cols C and D for CY/PY
-            logger.warning("Note %s: Could not find date columns — skipping", note_num)
-            row += 1
-            continue
+        cy_col, py_col, cy_yr, py_yr, date_row = _find_date_columns(
+            ws, search_rows=range(row, min(row + 10, ws.max_row + 1)),
+            default_cy_year=cy_year, default_py_year=py_year)
 
         # Detect if this is an asset note (PPE)
-        is_asset_note = any(kw in note_heading.lower() for kw in
+        heading_clean = note_heading.lower().replace('-', ' ')
+        is_asset_note = any(kw in heading_clean for kw in
                            ['property', 'plant', 'equipment', 'intangible',
                             'right of use', 'rou', 'ppe'])
+
+        if cy_col is None:
+            if is_asset_note:
+                # For PPE schedules, find the "Total" column
+                found_total = False
+                for r in range(row, min(row + 10, ws.max_row + 1)):
+                    for c in range(1, ws.max_column + 1):
+                        val = _get_text(ws.cell(row=r, column=c)).lower()
+                        if val == 'total':
+                            cy_col = c
+                            py_col = c
+                            cy_yr = cy_year
+                            py_yr = py_year
+                            date_row = r
+                            logger.info("Note %s: Found 'Total' column at col %d for Asset note", note_num, c)
+                            found_total = True
+                            break
+                    if found_total:
+                        break
+            
+            if cy_col is None:
+                # Fallback to default columns C (3) and D (4)
+                cy_col = 3
+                py_col = 4
+                cy_yr = cy_year
+                py_yr = py_year
+                date_row = row + 1
+                logger.info("Note %s: Could not find date columns — falling back to columns 3 and 4", note_num)
+        else:
+            cy_year = cy_yr
+            py_year = py_yr
 
         # Parse data rows until next note heading or end
         data_rows = []
@@ -369,11 +460,9 @@ def _parse_notes_sheet(ws):
 
         for data_row in range(data_start, ws.max_row + 1):
             # Check if we hit the next note heading
-            next_a = ws.cell(row=data_row, column=1)
-            if next_a.value is not None and _is_bold(next_a):
-                next_val = str(next_a.value).strip()
-                if re.match(r'^\d+[A-Za-z]?$', next_val):
-                    break  # Next note starts here
+            next_num, next_heading = _is_note_heading(ws, data_row)
+            if next_num is not None:
+                break  # Next note starts here
 
             part_text = _get_text(ws.cell(row=data_row, column=part_col))
             cy_val = _get_value(ws.cell(row=data_row, column=cy_col))
@@ -397,8 +486,8 @@ def _parse_notes_sheet(ws):
             'note_heading': note_heading,
             'data': data_rows,
             'is_asset_note': is_asset_note,
-            'cy_year': cy_year,
-            'py_year': py_year
+            'cy_year': cy_yr,
+            'py_year': py_yr
         })
 
         row += 1
