@@ -27,7 +27,7 @@ class RemarkWorker(QThread):
     
     def run(self):
         try:
-            from src.core.ai_remarks import generate_remarks
+            from src.core.finance_agent import generate_remarks
             
             total_flagged = sum(1 for x in self.bs_items if x.get('flag')) + \
                            sum(1 for x in self.pl_items if x.get('flag'))
@@ -240,7 +240,7 @@ class RemarksView(QWidget):
     
     def _start_generation(self):
         """Start AI remark generation in background."""
-        from src.core.ai_remarks import load_api_key
+        from src.core.finance_agent import load_api_key
         api_key = load_api_key()
         if not api_key:
             QMessageBox.warning(self, 'API Key Required',
