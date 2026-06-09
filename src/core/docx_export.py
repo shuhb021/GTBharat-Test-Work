@@ -58,7 +58,7 @@ def _add_table_row(table, values, is_header=False, highlight=False):
 def export_docx(output_path, bs_result, pl_result, ratios,
                     remarks_bs, remarks_pl,
                     client_name, firm_name, financial_year,
-                    rounding_unit, cy_year, py_year):
+                    rounding_unit, cy_year, py_year, chart_paths=None):
     """
     Generate the FAR Word document.
     """
@@ -68,6 +68,13 @@ def export_docx(output_path, bs_result, pl_result, ratios,
     
     doc = Document()
     
+    # Add footer with generation timestamp
+    for section in doc.sections:
+        footer = section.footer
+        footer_p = footer.paragraphs[0]
+        footer_p.text = f"FAR Workpaper — Generated: {datetime.now().strftime('%d %B %Y, %H:%M:%S')}"
+        footer_p.alignment = WD_ALIGN_PARAGRAPH.RIGHT
+    
     # Set default font
     style = doc.styles['Normal']
     font = style.font
@@ -76,37 +83,73 @@ def export_docx(output_path, bs_result, pl_result, ratios,
     
     # ── Cover Page ──
     doc.add_paragraph('')
-    doc.add_paragraph('')
     
-    title = doc.add_paragraph()
-    title.alignment = WD_ALIGN_PARAGRAPH.CENTER
-    run = title.add_run(firm_name)
-    run.font.size = Pt(24)
+    # Firm Name
+    firm = doc.add_paragraph()
+    firm.alignment = WD_ALIGN_PARAGRAPH.CENTER
+    run = firm.add_run(firm_name if firm_name else "Walker Chandiok & Co LLP")
+    run.font.size = Pt(20)
     run.font.bold = True
-    run.font.color.rgb = RGBColor(0x00, 0x7A, 0xCC)
+    run.font.color.rgb = RGBColor(0x70, 0x30, 0xA0) # Purple color
     
     doc.add_paragraph('')
     
+    # Subtitle
     subtitle = doc.add_paragraph()
     subtitle.alignment = WD_ALIGN_PARAGRAPH.CENTER
-    run = subtitle.add_run('Final Analytical Review Workpaper')
-    run.font.size = Pt(18)
+    run = subtitle.add_run('Trial Balance Analysis')
+    run.font.size = Pt(16)
     run.font.bold = True
+    run.font.color.rgb = RGBColor(0x70, 0x30, 0xA0)
     
     doc.add_paragraph('')
     
-    info_items = [
-        f'Client: {client_name}',
-        f'Financial Year: {financial_year}',
-        f'Period: 31 March {py_year} to 31 March {cy_year}',
-        f'Amounts stated in: {rounding_unit}',
-        f'Generated: {datetime.now().strftime("%d %B %Y")}',
+    # Details table-like paragraphs
+    p_client = doc.add_paragraph()
+    p_client.alignment = WD_ALIGN_PARAGRAPH.CENTER
+    run = p_client.add_run(f'Client: {client_name}')
+    run.font.size = Pt(12)
+    run.font.bold = True
+    
+    p_date = doc.add_paragraph()
+    p_date.alignment = WD_ALIGN_PARAGRAPH.CENTER
+    run = p_date.add_run(f'Analysis Date: {datetime.now().strftime("%B %d, %Y")}')
+    run.font.size = Pt(12)
+    
+    doc.add_paragraph('')
+    
+    # Analysis Summary Header
+    summary_hdr = doc.add_paragraph()
+    summary_hdr.alignment = WD_ALIGN_PARAGRAPH.CENTER
+    run = summary_hdr.add_run('Analysis Summary')
+    run.font.size = Pt(14)
+    run.font.bold = True
+    run.font.color.rgb = RGBColor(0x70, 0x30, 0xA0)
+    
+    # Summary Bullet Points
+    bullets = [
+        "Balance Sheet Analysis",
+        "Profit and Loss Analysis",
+        "Ratio and Relations Analysis",
+        "Visual Analytics and Charts",
+        "Year-over-Year Comparisons",
+        "Data Validation Checks"
     ]
-    for item in info_items:
-        p = doc.add_paragraph()
-        p.alignment = WD_ALIGN_PARAGRAPH.CENTER
-        run = p.add_run(item)
-        run.font.size = Pt(12)
+    for bullet in bullets:
+        p = doc.add_paragraph(style='List Bullet')
+        run = p.add_run(bullet)
+        run.font.size = Pt(11)
+        
+    doc.add_paragraph('')
+    doc.add_paragraph('')
+    
+    # Confidentiality
+    conf = doc.add_paragraph()
+    conf.alignment = WD_ALIGN_PARAGRAPH.CENTER
+    run = conf.add_run('Confidential - For Internal Use Only')
+    run.font.size = Pt(9)
+    run.font.italic = True
+    run.font.color.rgb = RGBColor(0x7F, 0x7F, 0x7F)
     
     doc.add_page_break()
     
@@ -132,14 +175,15 @@ def export_docx(output_path, bs_result, pl_result, ratios,
                 run.font.size = Pt(9)
                 run.font.color.rgb = RGBColor(0xFF, 0xFF, 0xFF)
     
+    fmt = ",.2f" if rounding_unit in ('Lakhs', 'Millions', 'Actuals') else ",.0f"
     for idx, row_data in enumerate(bs_result):
         remark = remarks_bs.get(idx, '')
         values = [
             row_data.get('particulars', ''),
             row_data.get('note', ''),
-            f"{row_data.get('cy', 0):,.0f}",
-            f"{row_data.get('py', 0):,.0f}",
-            f"{row_data.get('variance_abs', 0):,.0f}",
+            f"{row_data.get('cy', 0):{fmt}}",
+            f"{row_data.get('py', 0):{fmt}}",
+            f"{row_data.get('variance_abs', 0):{fmt}}",
             row_data.get('display_pct', ''),
             remark
         ]
@@ -172,9 +216,9 @@ def export_docx(output_path, bs_result, pl_result, ratios,
         values = [
             row_data.get('particulars', ''),
             row_data.get('note', ''),
-            f"{row_data.get('cy', 0):,.0f}",
-            f"{row_data.get('py', 0):,.0f}",
-            f"{row_data.get('variance_abs', 0):,.0f}",
+            f"{row_data.get('cy', 0):{fmt}}",
+            f"{row_data.get('py', 0):{fmt}}",
+            f"{row_data.get('variance_abs', 0):{fmt}}",
             row_data.get('display_pct', ''),
             remark
         ]
@@ -243,6 +287,35 @@ def export_docx(output_path, bs_result, pl_result, ratios,
                     run = p.add_run(remark)
                     run.font.size = Pt(10)
     
+    # ── Visual Analytics Dashboard ──
+    if chart_paths:
+        doc.add_page_break()
+        doc.add_heading('Visual Analytics Dashboard', level=1)
+        doc.add_paragraph('Selected key visualizations and composition analyses.')
+
+        for idx, path in enumerate(chart_paths):
+            if os.path.exists(path):
+                try:
+                    chart_titles = [
+                        'Revenue vs Expenses (CY/PY)',
+                        'Profit Before Tax Trend',
+                        'Asset Composition (CY)',
+                        'Liability & Equity Composition (CY)',
+                        'Top 5 BS Variances',
+                        'Top 5 PL Variances'
+                    ]
+                    if idx < len(chart_titles):
+                        doc.add_heading(chart_titles[idx], level=2)
+                    
+                    p = doc.add_paragraph()
+                    p.alignment = WD_ALIGN_PARAGRAPH.CENTER
+                    run = p.add_run()
+                    run.add_picture(path, width=Inches(5.0))
+                    
+                    doc.add_paragraph('')
+                except Exception as e:
+                    logger.error("Failed to add chart %d to Word document: %s", idx, e)
+
     # Save
     doc.save(output_path)
     logger.info("FAR Word document saved to %s", output_path)

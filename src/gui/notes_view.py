@@ -160,9 +160,9 @@ class NotesView(QWidget):
                 
                 items = [
                     row.get('particulars', ''),
-                    self._fmt(row.get('cy', 0)),
-                    self._fmt(row.get('py', 0)),
-                    self._fmt(row.get('variance_abs', 0)),
+                    self._fmt(row.get('cy', 0), rounding_unit),
+                    self._fmt(row.get('py', 0), rounding_unit),
+                    self._fmt(row.get('variance_abs', 0), rounding_unit),
                     row.get('display_pct', ''),
                 ]
                 
@@ -190,11 +190,13 @@ class NotesView(QWidget):
         scroll.setWidget(content)
         return scroll
     
-    def _fmt(self, value):
+    def _fmt(self, value, rounding_unit='Lakhs'):
         try:
             v = float(value)
             if v == 0:
                 return '0'
+            if rounding_unit in ('Lakhs', 'Millions', 'Actuals'):
+                return f'{v:,.2f}'
             return f'{v:,.0f}'
         except (ValueError, TypeError):
             return str(value)

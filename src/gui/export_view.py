@@ -181,6 +181,28 @@ class ExportView(QWidget):
             return f"{client}_FAR_{fy}.{ext}"
         return f"FAR_Output.{ext}"
     
+    def _generate_temp_charts(self):
+        import tempfile
+        import shutil
+        from src.core.chart_generator import generate_all_charts
+        
+        temp_dir = tempfile.mkdtemp(prefix='far_charts_')
+        d = self.export_data
+        try:
+            chart_paths = generate_all_charts(
+                d.get('bs_result', []),
+                d.get('pl_result', []),
+                d.get('ratios', []),
+                d.get('cy_year', 2025),
+                d.get('py_year', 2024),
+                d.get('rounding_unit', 'Lakhs'),
+                temp_dir
+            )
+            return temp_dir, chart_paths
+        except Exception as e:
+            shutil.rmtree(temp_dir, ignore_errors=True)
+            raise e
+
     def _export_excel(self):
         if not self.export_data:
             QMessageBox.warning(self, 'No Data', 'Generate FAR from Input Form first.')
@@ -200,7 +222,12 @@ class ExportView(QWidget):
         self.progress_bar.setMaximum(0)  # Indeterminate
         self.excel_btn.setEnabled(False)
         
+        temp_dir = None
+        chart_paths = None
         try:
+            if self.include_dashboard.isChecked():
+                temp_dir, chart_paths = self._generate_temp_charts()
+
             from src.core.excel_export import export_far_workbook
             
             d = self.export_data
@@ -218,6 +245,7 @@ class ExportView(QWidget):
                 d.get('rounding_unit', 'Lakhs'),
                 d.get('cy_year', 2025),
                 d.get('py_year', 2024),
+                chart_paths=chart_paths
             )
             
             self.last_file = filepath
@@ -225,6 +253,9 @@ class ExportView(QWidget):
         except Exception as e:
             self._show_error(str(e))
         finally:
+            if temp_dir:
+                import shutil
+                shutil.rmtree(temp_dir, ignore_errors=True)
             self.progress_bar.setVisible(False)
             self.excel_btn.setEnabled(True)
     
@@ -247,7 +278,11 @@ class ExportView(QWidget):
         self.progress_bar.setMaximum(0)
         self.docx_btn.setEnabled(False)
         
+        temp_dir = None
+        chart_paths = None
         try:
+            temp_dir, chart_paths = self._generate_temp_charts()
+
             from src.core.docx_export import export_docx
             
             d = self.export_data
@@ -264,6 +299,7 @@ class ExportView(QWidget):
                 d.get('rounding_unit', 'Lakhs'),
                 d.get('cy_year', 2025),
                 d.get('py_year', 2024),
+                chart_paths=chart_paths
             )
             
             self.last_file = filepath
@@ -271,6 +307,9 @@ class ExportView(QWidget):
         except Exception as e:
             self._show_error(str(e))
         finally:
+            if temp_dir:
+                import shutil
+                shutil.rmtree(temp_dir, ignore_errors=True)
             self.progress_bar.setVisible(False)
             self.docx_btn.setEnabled(True)
     

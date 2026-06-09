@@ -1,0 +1,10 @@
+__pycache__/
+*.pyc
+*.pyo
+logs/
+scratch.csv
+scratch2.csv
+*.egg-info/
+dist/
+build/
+.env

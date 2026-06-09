@@ -164,9 +164,32 @@ class InputForm(QWidget):
         self.financial_year.addItems(years)
         info_layout.addRow('Financial Year:', self.financial_year)
         
+        # Fetch details button
+        self.fetch_details_btn = QPushButton("🔍 Auto-Fetch Details from BS File")
+        self.fetch_details_btn.setStyleSheet("""
+            QPushButton {
+                background-color: #2D3748;
+                color: #FFFFFF;
+                border: 1px solid #4A5568;
+                border-radius: 4px;
+                padding: 6px 12px;
+                font-weight: 600;
+            }
+            QPushButton:hover {
+                background-color: #4A5568;
+            }
+        """)
+        self.fetch_details_btn.clicked.connect(self._fetch_details_from_file)
+        info_layout.addRow('', self.fetch_details_btn)
+        
+        # Round Off
+        self.round_off = QCheckBox("Enable Rounding")
+        self.round_off.setChecked(True)
+        info_layout.addRow('Round Off:', self.round_off)
+        
         # Rounding unit
-        unit_widget = QWidget()
-        unit_layout = QHBoxLayout(unit_widget)
+        self.unit_widget = QWidget()
+        unit_layout = QHBoxLayout(self.unit_widget)
         unit_layout.setContentsMargins(0, 0, 0, 0)
         self.unit_group = QButtonGroup()
         
@@ -179,7 +202,10 @@ class InputForm(QWidget):
                 rb.setChecked(True)
         
         unit_layout.addStretch()
-        info_layout.addRow('Rounding Unit:', unit_widget)
+        info_layout.addRow('Rounding Unit:', self.unit_widget)
+        
+        # Connect checkbox to enable/disable units
+        self.round_off.toggled.connect(self.unit_widget.setEnabled)
         
         # Notes required
         self.notes_required = QCheckBox('Include Notes to Accounts analysis')
@@ -256,6 +282,63 @@ class InputForm(QWidget):
         
 
 
+    def _fetch_details_from_file(self):
+        """Fetch client name and financial year from the selected Balance Sheet file."""
+        if not self.bs_upload.is_loaded():
+            QMessageBox.warning(self, 'No File Selected', 'Please select a Balance Sheet file first.')
+            return
+        
+        filepath = self.bs_upload.get_paths()[0]
+        try:
+            from openpyxl import load_workbook
+            from src.core.excel_parser import _extract_client_name, _find_date_columns
+            
+            wb = load_workbook(filepath, data_only=True, read_only=True)
+            
+            # Find BS sheet
+            ws = None
+            for name in ['BS', 'Balance Sheet', 'BalanceSheet']:
+                if name in wb.sheetnames:
+                    ws = wb[name]
+                    break
+            if ws is None:
+                ws = wb.worksheets[0]
+                
+            client_name = _extract_client_name(ws)
+            _, _, cy_year, _, _ = _find_date_columns(ws)
+            wb.close()
+            
+            extracted_info = []
+            if client_name:
+                self.client_name.setText(client_name)
+                extracted_info.append(f"Client Name: {client_name}")
+            
+            if cy_year:
+                fy_text = f"{cy_year - 1}-{str(cy_year)[-2:]}"
+                index = self.financial_year.findText(fy_text)
+                if index >= 0:
+                    self.financial_year.setCurrentIndex(index)
+                else:
+                    self.financial_year.addItem(fy_text)
+                    self.financial_year.setCurrentText(fy_text)
+                extracted_info.append(f"Financial Year: {fy_text}")
+                
+            if extracted_info:
+                QMessageBox.information(
+                    self, 'Details Fetched',
+                    "Successfully fetched details from Balance Sheet:\n\n" + "\n".join(extracted_info)
+                )
+            else:
+                QMessageBox.warning(
+                    self, 'Details Not Found',
+                    "Could not extract Client Name or Financial Year from the selected Balance Sheet file."
+                )
+        except Exception as e:
+            QMessageBox.critical(
+                self, 'Error Fetching Details',
+                f"Failed to parse details from the Balance Sheet file:\n\n{str(e)}"
+            )
+
     def _validate(self):
         """Validate all form fields."""
         errors = []
@@ -323,6 +406,7 @@ class InputForm(QWidget):
             'firm_name': self.firm_name.text().strip() or 'Audit Firm',
             'client_name': self.client_name.text().strip(),
             'financial_year': self.financial_year.currentText(),
+            'round_off': self.round_off.isChecked(),
             'rounding_unit': unit_text,
             'notes_required': self.notes_required.isChecked(),
             'bs_file': self.bs_upload.get_paths()[0] if self.bs_upload.is_loaded() else '',
@@ -341,6 +425,7 @@ class InputForm(QWidget):
             'firm_name': self.firm_name.text().strip() or 'Audit Firm',
             'client_name': self.client_name.text().strip(),
             'financial_year': self.financial_year.currentText(),
+            'round_off': self.round_off.isChecked(),
             'rounding_unit': unit_text,
             'notes_required': self.notes_required.isChecked(),
             'bs_file': self.bs_upload.get_paths()[0] if self.bs_upload.is_loaded() else '',
