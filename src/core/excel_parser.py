@@ -9,6 +9,48 @@ import logging
 from datetime import datetime
 from openpyxl import load_workbook
 
+_WB_CACHE = {}
+
+def get_cached_workbook(filepath):
+    import os
+    if not os.path.exists(filepath):
+        raise FileNotFoundError(filepath)
+    if filepath not in _WB_CACHE:
+        from openpyxl import load_workbook
+        import logging
+        logging.getLogger(__name__).info("Loading workbook into cache (read_only=True): %s", filepath)
+        # Using read_only=True completely eliminates memory bottlenecks for 100MB files
+        _WB_CACHE[filepath] = load_workbook(filepath, data_only=True, read_only=True)
+    return _WB_CACHE[filepath]
+
+def clear_workbook_cache():
+    global _WB_CACHE
+    for wb in _WB_CACHE.values():
+        wb.close()
+    _WB_CACHE.clear()
+
+class SheetWrapper:
+    """Wraps a read-only worksheet to support ws.cell(row, col) syntax using an in-memory 2D array."""
+    def __init__(self, ws):
+        self.ws = ws
+        self.title = getattr(ws, 'title', '')
+        # Read all rows instantly. Since read_only streams, this is extremely fast and avoids parsing the whole DOM
+        self._data = list(ws.iter_rows())
+        self.max_row = len(self._data)
+        self.max_column = len(self._data[0]) if self.max_row > 0 else 0
+
+    def cell(self, row, column):
+        # row and column are 1-indexed
+        if 1 <= row <= self.max_row and 1 <= column <= len(self._data[row-1]):
+            return self._data[row-1][column-1]
+        
+        # Return a dummy empty cell if out of bounds
+        class EmptyCell:
+            value = None
+            font = None
+        return EmptyCell()
+
+
 logger = logging.getLogger(__name__)
 
 
@@ -136,6 +178,49 @@ def _extract_client_name(ws):
     return ''
 
 
+def _find_part_note_columns(ws, header_row, default_part=1, default_note=3):
+    """
+    Dynamically find the column indices for 'Particulars' and 'Notes'.
+    Scans the header_row area. If not explicitly found, uses a heuristic
+    on the data rows to see if Column B has more text than Column A.
+    """
+    part_col = default_part
+    note_col = default_note
+    if header_row is None:
+        return part_col, note_col
+        
+    found_part = False
+    found_note = False
+    
+    # 1. Scan header row and adjacent rows
+    for r in range(max(1, header_row - 2), min(ws.max_row + 1, header_row + 2)):
+        for c in range(1, ws.max_column + 1):
+            val = str(ws.cell(row=r, column=c).value or '').lower().strip()
+            if not found_part and ('particular' in val or 'description' in val):
+                part_col = c
+                found_part = True
+            elif not found_note and ('note' in val or 'sch' in val):
+                note_col = c
+                found_note = True
+                
+    # 2. Fallback heuristic: check which column has the most text in the data rows (usually particulars)
+    if not found_part:
+        col_lengths = {1: 0, 2: 0, 3: 0, 4: 0}
+        for r in range(header_row + 1, min(ws.max_row + 1, header_row + 15)):
+            for c in range(1, 5):
+                val = str(ws.cell(row=r, column=c).value or '').strip()
+                # Don't count numbers/dates
+                if not re.match(r'^[\d\.,\(\)\-]+$', val):
+                    col_lengths[c] += len(val)
+                    
+        best_col = max(col_lengths.items(), key=lambda x: x[1])
+        if best_col[1] > 20:
+            part_col = best_col[0]
+            logger.info("Heuristic determined Particulars is in column %d (length sum=%d)", part_col, best_col[1])
+            
+    return part_col, note_col
+
+
 def parse_balance_sheet(filepath):
     """
     Parse Balance Sheet from client Excel file.
@@ -155,16 +240,16 @@ def parse_balance_sheet(filepath):
             'py_year': int
             'client_name': str
     """
-    wb = load_workbook(filepath, data_only=True)
+    wb = get_cached_workbook(filepath)
 
     # Try to find 'BS' sheet or first sheet
     ws = None
     for name in ['BS', 'Balance Sheet', 'BalanceSheet']:
         if name in wb.sheetnames:
-            ws = wb[name]
+            ws = SheetWrapper(wb[name])
             break
     if ws is None:
-        ws = wb.worksheets[0]
+        ws = SheetWrapper(wb.worksheets[0])
         logger.info("No 'BS' sheet found, using first sheet: %s", ws.title)
 
     # Get client name — enhanced scan across first 5 rows
@@ -176,25 +261,16 @@ def parse_balance_sheet(filepath):
         raise ValueError("Could not find year headers (e.g. '31 March 2025') in the Balance Sheet.\n"
                          "Please load your actual client financial statement, not the blank template.")
 
-    # Determine particulars and notes columns
-    # In sample: Col A = Particulars, Col C = Notes
-    part_col = 1   # Column A
-    note_col = 3   # Column C
+    # Determine particulars and notes columns dynamically
+    part_col, note_col = _find_part_note_columns(ws, header_row, default_part=1, default_note=3)
+    logger.info("BS columns detected: Particulars=col %d, Notes=col %d", part_col, note_col)
 
     # Parse data rows
     data = []
     start_row = header_row + 1
-    in_data = False
 
     for row_idx in range(start_row, ws.max_row + 1):
         part_text = _get_text(ws.cell(row=row_idx, column=part_col))
-
-        # Start parsing when we find "Assets"
-        if not in_data and part_text.lower().strip() in ('assets', 'asset'):
-            in_data = True
-
-        if not in_data:
-            continue
 
         # Get values
         note_text = _get_text(ws.cell(row=row_idx, column=note_col))
@@ -215,10 +291,6 @@ def parse_balance_sheet(filepath):
             'row_num': row_idx
         }
         data.append(row_data)
-
-        # Stop at "Total equity and liabilities"
-        if 'total equity and liabilities' in part_text.lower():
-            break
 
     wb.close()
     logger.info("Parsed BS: %d rows, CY=%d, PY=%d", len(data), cy_year, py_year)
@@ -246,20 +318,20 @@ def parse_profit_loss(filepath):
     Returns:
         dict with keys: 'data', 'cy_year', 'py_year', 'client_name'
     """
-    wb = load_workbook(filepath, data_only=True)
+    wb = get_cached_workbook(filepath)
 
     # Try to find 'PL' or 'P&L' sheet
     ws = None
     for name in ['PL', 'P&L', 'Profit & Loss', 'Profit and Loss', 'ProfitLoss']:
         if name in wb.sheetnames:
-            ws = wb[name]
+            ws = SheetWrapper(wb[name])
             break
     if ws is None:
         # Check if there's a second sheet
         if len(wb.sheetnames) > 1:
-            ws = wb.worksheets[1]
+            ws = SheetWrapper(wb.worksheets[1])
         else:
-            ws = wb.worksheets[0]
+            ws = SheetWrapper(wb.worksheets[0])
         logger.info("No 'PL' sheet found, using sheet: %s", ws.title)
 
     client_name = _extract_client_name(ws)
@@ -270,9 +342,9 @@ def parse_profit_loss(filepath):
         raise ValueError("Could not find year headers (e.g. '31 March 2025') in the P&L statement.\n"
                          "Please load your actual client financial statement, not the blank template.")
 
-    # In sample PL: Col A = Particulars, Col D = Notes
-    part_col = 1   # Column A
-    note_col = 4   # Column D
+    # Determine particulars and notes columns dynamically
+    part_col, note_col = _find_part_note_columns(ws, header_row, default_part=1, default_note=4)
+    logger.info("PL columns detected: Particulars=col %d, Notes=col %d", part_col, note_col)
 
     data = []
     start_row = header_row + 1
@@ -331,10 +403,27 @@ def parse_notes(filepath, cy_year=2025, py_year=2024):
             ...
         }
     """
-    wb = load_workbook(filepath, data_only=True)
+    wb = get_cached_workbook(filepath)
 
-    # Known notes sheet names
-    notes_sheet_names = ['3-4', '5-9', '10-17', '18-26']
+    # Dynamically find notes sheets instead of hardcoding
+    notes_sheet_names = []
+    for sheet_name in wb.sheetnames:
+        name_lower = sheet_name.lower().strip()
+        
+        # Skip hidden sheets
+        if wb[sheet_name].sheet_state != 'visible':
+            continue
+            
+        # Skip known main sheets
+        if any(x in name_lower for x in ['bs', 'balance sheet', 'pl', 'p&l', 'profit']):
+            continue
+        if name_lower in ['dashboard', 'ratios', 'cover page']:
+            continue
+            
+        # If the sheet name contains digits (e.g. '3-4', '5') or the word 'note'/'sch', it's a notes sheet
+        if re.search(r'\d', sheet_name) or 'note' in name_lower or 'sch' in name_lower:
+            notes_sheet_names.append(sheet_name)
+            
     result = {}
 
     for sheet_name in notes_sheet_names:
@@ -342,7 +431,7 @@ def parse_notes(filepath, cy_year=2025, py_year=2024):
             logger.debug("Notes sheet '%s' not found in workbook", sheet_name)
             continue
 
-        ws = wb[sheet_name]
+        ws = SheetWrapper(wb[sheet_name])
         notes_groups = _parse_notes_sheet(ws, cy_year, py_year)
         if notes_groups:
             result[sheet_name] = notes_groups
@@ -676,6 +765,8 @@ def extract_pl_summary(pl_data):
         'software services',
         'sale of products',
         'sale of services',
+        'sales',
+        'turnover',
         'revenue',
     ]
     cy, py = _find_first_nonzero(pl_data, revenue_keywords)

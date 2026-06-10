@@ -51,3 +51,17 @@ FAR_EXPORT void free_result(const char* ptr);
 } // extern "C"
 
 #endif // FAR_ENGINE_H
+
+#pragma pack(push, 1)
+struct FinRow {
+    double cy;
+    double py;
+    double variance_abs;
+    double variance_pct;
+    bool flag;
+};
+#pragma pack(pop)
+
+extern "C" {
+    FAR_EXPORT void compute_variances_fast(FinRow* rows, int count);
+}

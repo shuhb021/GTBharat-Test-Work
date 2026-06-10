@@ -141,11 +141,11 @@ class ExportView(QWidget):
         status_layout.setContentsMargins(16, 12, 16, 12)
         
         self.status_icon = QLabel('✅')
-        self.status_icon.setStyleSheet("font-size: 24px; background: transparent;")
+        self.status_icon.setObjectName('exportStatusIcon')
         status_layout.addWidget(self.status_icon)
         
         self.status_text = QLabel('')
-        self.status_text.setStyleSheet("color: #22C55E; font-size: 14px; font-weight: 600; background: transparent;")
+        self.status_text.setObjectName('exportStatusText')
         status_layout.addWidget(self.status_text)
         
         status_layout.addStretch()
@@ -317,7 +317,9 @@ class ExportView(QWidget):
         self.status_frame.setVisible(True)
         self.status_icon.setText('✅')
         self.status_text.setText(message)
-        self.status_text.setStyleSheet("color: #22C55E; font-size: 14px; font-weight: 600; background: transparent;")
+        self.status_text.setObjectName('successLabel')
+        self.status_text.style().unpolish(self.status_text)
+        self.status_text.style().polish(self.status_text)
         self.open_file_btn.setVisible(True)
         self.open_folder_btn.setVisible(True)
     
@@ -325,7 +327,9 @@ class ExportView(QWidget):
         self.status_frame.setVisible(True)
         self.status_icon.setText('❌')
         self.status_text.setText(f'Error: {message}')
-        self.status_text.setStyleSheet("color: #EF4444; font-size: 14px; font-weight: 600; background: transparent;")
+        self.status_text.setObjectName('errorLabel')
+        self.status_text.style().unpolish(self.status_text)
+        self.status_text.style().polish(self.status_text)
         self.open_file_btn.setVisible(False)
         self.open_folder_btn.setVisible(False)
     

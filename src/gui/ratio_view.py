@@ -36,7 +36,7 @@ class RatioView(QWidget):
         header_layout.setContentsMargins(16, 12, 16, 12)
         
         self.client_label = QLabel('Client: —')
-        self.client_label.setStyleSheet("color: #FFFFFF; font-size: 14px; font-weight: 600; background: transparent;")
+        self.client_label.setObjectName('clientInfoLabel')
         header_layout.addWidget(self.client_label)
         
         self.period_label = QLabel('')
