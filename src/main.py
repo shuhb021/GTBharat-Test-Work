@@ -51,27 +51,27 @@ def load_stylesheet():
     return ''
 
 
-def setup_dark_palette(app):
-    """Set up a dark color palette for the application."""
+def setup_light_palette(app):
+    """Set up a light purple color palette for the application."""
     palette = QPalette()
     
-    palette.setColor(QPalette.ColorRole.Window, QColor('#1E1E1E'))
-    palette.setColor(QPalette.ColorRole.WindowText, QColor('#FFFFFF'))
-    palette.setColor(QPalette.ColorRole.Base, QColor('#252526'))
-    palette.setColor(QPalette.ColorRole.AlternateBase, QColor('#2A2D2E'))
-    palette.setColor(QPalette.ColorRole.ToolTipBase, QColor('#252526'))
-    palette.setColor(QPalette.ColorRole.ToolTipText, QColor('#CCCCCC'))
-    palette.setColor(QPalette.ColorRole.Text, QColor('#FFFFFF'))
-    palette.setColor(QPalette.ColorRole.Button, QColor('#3C3C3C'))
-    palette.setColor(QPalette.ColorRole.ButtonText, QColor('#FFFFFF'))
-    palette.setColor(QPalette.ColorRole.BrightText, QColor('#007ACC'))
-    palette.setColor(QPalette.ColorRole.Link, QColor('#007ACC'))
-    palette.setColor(QPalette.ColorRole.Highlight, QColor('#007ACC'))
+    palette.setColor(QPalette.ColorRole.Window, QColor('#FFFFFF'))
+    palette.setColor(QPalette.ColorRole.WindowText, QColor('#2D2D2D'))
+    palette.setColor(QPalette.ColorRole.Base, QColor('#FFFFFF'))
+    palette.setColor(QPalette.ColorRole.AlternateBase, QColor('#F9F7FC'))
+    palette.setColor(QPalette.ColorRole.ToolTipBase, QColor('#FFFFFF'))
+    palette.setColor(QPalette.ColorRole.ToolTipText, QColor('#2D2D2D'))
+    palette.setColor(QPalette.ColorRole.Text, QColor('#2D2D2D'))
+    palette.setColor(QPalette.ColorRole.Button, QColor('#F0F0F0'))
+    palette.setColor(QPalette.ColorRole.ButtonText, QColor('#2D2D2D'))
+    palette.setColor(QPalette.ColorRole.BrightText, QColor('#4A1A6B'))
+    palette.setColor(QPalette.ColorRole.Link, QColor('#4A1A6B'))
+    palette.setColor(QPalette.ColorRole.Highlight, QColor('#4A1A6B'))
     palette.setColor(QPalette.ColorRole.HighlightedText, QColor('#FFFFFF'))
     
     # Disabled colors
-    palette.setColor(QPalette.ColorGroup.Disabled, QPalette.ColorRole.Text, QColor('#666666'))
-    palette.setColor(QPalette.ColorGroup.Disabled, QPalette.ColorRole.ButtonText, QColor('#666666'))
+    palette.setColor(QPalette.ColorGroup.Disabled, QPalette.ColorRole.Text, QColor('#AAAAAA'))
+    palette.setColor(QPalette.ColorGroup.Disabled, QPalette.ColorRole.ButtonText, QColor('#AAAAAA'))
     
     app.setPalette(palette)
 
@@ -90,8 +90,8 @@ def main():
     font = QFont('Segoe UI', 11)
     app.setFont(font)
     
-    # Apply dark palette
-    setup_dark_palette(app)
+    # Apply light purple palette
+    setup_light_palette(app)
     
     # Load QSS stylesheet
     stylesheet = load_stylesheet()

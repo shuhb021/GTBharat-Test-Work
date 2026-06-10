@@ -22,22 +22,22 @@ class ValidationReport:
     def add_pass(self, check, detail=''):
         msg = f"✓ {check}" + (f": {detail}" if detail else '')
         self.passed.append(msg)
-        logger.info("VALIDATION PASS — %s", msg)
+        logger.info("VALIDATION PASS - %s", f"{check}" + (f": {detail}" if detail else ''))
 
     def add_fail(self, check, detail=''):
         msg = f"✗ {check}" + (f": {detail}" if detail else '')
         self.failed.append(msg)
-        logger.error("VALIDATION FAIL — %s", msg)
+        logger.error("VALIDATION FAIL - %s", f"{check}" + (f": {detail}" if detail else ''))
 
     def add_warning(self, check, detail=''):
         msg = f"⚠ {check}" + (f": {detail}" if detail else '')
         self.warnings.append(msg)
-        logger.warning("VALIDATION WARN — %s", msg)
+        logger.warning("VALIDATION WARN - %s", f"{check}" + (f": {detail}" if detail else ''))
 
     def add_auto_corrected(self, check, detail=''):
         msg = f"↺ {check}" + (f": {detail}" if detail else '')
         self.auto_corrected.append(msg)
-        logger.info("VALIDATION AUTO-CORRECTED — %s", msg)
+        logger.info("VALIDATION AUTO-CORRECTED - %s", f"{check}" + (f": {detail}" if detail else ''))
 
     @property
     def has_failures(self):
@@ -100,7 +100,9 @@ def validate_far_data(bs_data, pl_data, bs_summary, pl_summary, ratios):
     logger.info("Validation complete: %d passed, %d warnings, %d failed, %d auto-corrected",
                 len(report.passed), len(report.warnings),
                 len(report.failed), len(report.auto_corrected))
-    logger.info(report.detailed_report())
+    
+    safe_report = report.detailed_report().encode('ascii', 'replace').decode('ascii')
+    logger.info(safe_report)
 
     return report
 

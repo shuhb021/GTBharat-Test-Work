@@ -36,7 +36,7 @@ class NotesView(QWidget):
         
         left = QVBoxLayout()
         self.client_label = QLabel('Client: —')
-        self.client_label.setStyleSheet("color: #FFFFFF; font-size: 13px; font-weight: 600; background: transparent;")
+        self.client_label.setObjectName('clientInfoLabel')
         left.addWidget(self.client_label)
         self.period_label = QLabel('')
         self.period_label.setObjectName('mutedLabel')
@@ -47,15 +47,15 @@ class NotesView(QWidget):
         # Legends
         right = QVBoxLayout()
         legends_title = QLabel('Legend:')
-        legends_title.setStyleSheet("color: #007ACC; font-weight: 700; font-size: 11px; background: transparent;")
+        legends_title.setObjectName('legendTitle')
         right.addWidget(legends_title)
         for key, desc in [('a', 'Traced to Financials CY'), ('b', 'Traced to Financials PY'),
                           ('j', 'Linked'), ('e', 'Recomputed'), ('h', 'Immaterial')]:
             row = QHBoxLayout()
             k = QLabel(key)
-            k.setStyleSheet("color: #007ACC; font-weight: 700; font-size: 10px; min-width: 12px; background: transparent;")
+            k.setObjectName('legendKeySmall')
             d = QLabel(f'= {desc}')
-            d.setStyleSheet("color: #888888; font-size: 10px; background: transparent;")
+            d.setObjectName('legendDescSmall')
             row.addWidget(k)
             row.addWidget(d)
             row.addStretch()
@@ -99,7 +99,6 @@ class NotesView(QWidget):
         """Create a tab with tables for each note group."""
         scroll = QScrollArea()
         scroll.setWidgetResizable(True)
-        scroll.setStyleSheet("QScrollArea { border: none; background: #1E1E1E; }")
         
         content = QWidget()
         layout = QVBoxLayout(content)
@@ -109,15 +108,7 @@ class NotesView(QWidget):
         for note_group in note_groups:
             # Note heading
             heading = QLabel(f"Note {note_group['note_num']}: {note_group['note_heading']}")
-            heading.setStyleSheet("""
-                QLabel {
-                    color: #007ACC;
-                    font-size: 14px;
-                    font-weight: 700;
-                    padding: 8px 0;
-                    background: transparent;
-                }
-            """)
+            heading.setObjectName('noteHeading')
             layout.addWidget(heading)
             
             data = note_group.get('data', [])
@@ -172,7 +163,7 @@ class NotesView(QWidget):
                         item.setTextAlignment(Qt.AlignmentFlag.AlignRight | Qt.AlignmentFlag.AlignVCenter)
                     if is_bold:
                         item.setFont(QFont('Segoe UI', 11, QFont.Weight.Bold))
-                        item.setBackground(QBrush(QColor('#2A2D2E')))
+                        item.setBackground(QBrush(QColor('#F5F0FA')))
                     if flag:
                         item.setBackground(QBrush(QColor('#EAB308')))
                         item.setForeground(QBrush(QColor('#000000')))

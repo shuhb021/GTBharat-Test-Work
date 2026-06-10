@@ -9,7 +9,7 @@ from PyQt6.QtWidgets import (
     QLabel, QFrame, QStatusBar, QProgressBar, QMessageBox,
     QProgressDialog, QApplication, QPushButton
 )
-from PyQt6.QtCore import Qt, QTimer, pyqtSignal
+from PyQt6.QtCore import Qt, QTimer, pyqtSignal, QThread
 from PyQt6.QtGui import QAction, QKeySequence, QFont
 
 from src.gui.sidebar import Sidebar
@@ -22,6 +22,61 @@ from src.gui.remarks_view import RemarksView
 from src.gui.export_view import ExportView
 
 logger = logging.getLogger(__name__)
+
+class GenerateWorker(QThread):
+    progress = pyqtSignal(int, str)
+    finished = pyqtSignal(dict)
+    error = pyqtSignal(str)
+    
+    def __init__(self, form_data):
+        super().__init__()
+        self.form_data = form_data
+        
+    def run(self):
+        try:
+            from src.core.data_engine import DataEngine
+            from src.core.validation import validate_far_data
+            
+            engine = DataEngine()
+            
+            def on_progress(pct, msg):
+                self.progress.emit(pct, msg)
+                
+            # Offload to DataEngine which handles Caching, Polars, and Multiprocessing
+            payload = engine.process_far_data(self.form_data, progress_callback=on_progress)
+            
+            bs_result = payload['bs_data']
+            pl_result = payload['pl_data']
+            notes_result = payload['notes_data']
+            ratios = payload['ratios']
+            bs_summary = payload['bs_summary']
+            pl_summary = payload['pl_summary']
+            meta = payload['meta']
+            
+            self.progress.emit(85, '🔍 Validating data...')
+            validation_report = validate_far_data(
+                bs_result, pl_result,
+                bs_summary, pl_summary, ratios
+            )
+            
+            self.progress.emit(95, '📊 Building views...')
+            
+            result_dict = {
+                'bs_result': bs_result,
+                'pl_result': pl_result,
+                'notes_result': notes_result,
+                'ratios': ratios,
+                'cy_year': meta.get('cy_year', 2025),
+                'py_year': meta.get('py_year', 2024),
+                'parsed_client_name': meta.get('client_name', '').strip(),
+                'validation_report': validation_report
+            }
+            self.finished.emit(result_dict)
+        except Exception as e:
+            import traceback
+            traceback.print_exc()
+            self.error.emit(str(e))
+
 
 
 class TopBar(QFrame):
@@ -37,33 +92,33 @@ class TopBar(QFrame):
         layout.setContentsMargins(16, 0, 16, 0)
         
         self.client_label = QLabel('Client: —')
-        self.client_label.setStyleSheet(
-            "color: #FFFFFF; font-size: 13px; font-weight: 600; background: transparent;")
+        self.client_label.setObjectName('topBarClient')
         layout.addWidget(self.client_label)
         
         self.fy_label = QLabel('')
-        self.fy_label.setStyleSheet(
-            "color: #CCCCCC; font-size: 12px; background: transparent;")
+        self.fy_label.setObjectName('topBarFY')
         layout.addWidget(self.fy_label)
         
         self.unit_label = QLabel('')
-        self.unit_label.setStyleSheet(
-            "color: #888888; font-size: 12px; background: transparent;")
+        self.unit_label.setObjectName('topBarUnit')
         layout.addWidget(self.unit_label)
         
         layout.addStretch()
         
         self.export_btn = QPushButton('📊 Generate Excel Sheet')
-        self.export_btn.setObjectName('successButton')
+        self.export_btn.setObjectName('topBarExportBtn')
         self.export_btn.setFixedHeight(28)
-        self.export_btn.setStyleSheet("font-weight: bold; background-color: #22C55E; color: white; border-radius: 4px; padding: 4px 12px;")
         self.export_btn.clicked.connect(self.exportRequested.emit)
         self.export_btn.hide()
         layout.addWidget(self.export_btn)
         
+        # Purple status dot + "Ready" text
+        self.status_dot = QLabel('●')
+        self.status_dot.setObjectName('statusDot')
+        layout.addWidget(self.status_dot)
+        
         self.status_text = QLabel('Ready')
-        self.status_text.setStyleSheet(
-            "color: #888888; font-size: 11px; background: transparent; padding-left: 10px;")
+        self.status_text.setObjectName('statusText')
         layout.addWidget(self.status_text)
     
     def update_info(self, client='', fy='', unit=''):
@@ -91,7 +146,7 @@ class ToastNotification(QLabel):
         colors = {
             'success': ('#22C55E', '#000000'),
             'error': ('#EF4444', '#FFFFFF'),
-            'info': ('#007ACC', '#FFFFFF'),
+            'info': ('#4A1A6B', '#FFFFFF'),
             'warning': ('#EAB308', '#000000'),
         }
         bg, fg = colors.get(toast_type, colors['info'])
@@ -258,7 +313,6 @@ class MainWindow(QMainWindow):
         self.status_bar.addPermanentWidget(self.status_items)
         
         version_label = QLabel('v1.0.0')
-        version_label.setStyleSheet("color: rgba(255,255,255,0.7); font-size: 11px;")
         self.status_bar.addPermanentWidget(version_label)
         
         self.status_bar.showMessage('Ready')
@@ -286,200 +340,99 @@ class MainWindow(QMainWindow):
         )
         
         # Show progress dialog
-        progress = QProgressDialog('Generating FAR...', None, 0, 100, self)
-        progress.setWindowTitle('Processing')
-        progress.setWindowModality(Qt.WindowModality.WindowModal)
-        progress.setMinimumWidth(400)
-        progress.setAutoClose(True)
-        progress.setAutoReset(True)
-        progress.show()
-        QApplication.processEvents()
+        self.progress_dialog = QProgressDialog('Generating FAR...', None, 0, 100, self)
+        self.progress_dialog.setWindowTitle('Processing')
+        self.progress_dialog.setWindowModality(Qt.WindowModality.WindowModal)
+        self.progress_dialog.setMinimumWidth(400)
+        self.progress_dialog.setAutoClose(False)
+        self.progress_dialog.setAutoReset(False)
+        self.progress_dialog.show()
         
-        try:
-            # Step 1: Parse BS
-            progress.setLabelText('📄 Parsing Balance Sheet...')
-            progress.setValue(10)
-            QApplication.processEvents()
-            
-            from src.core.excel_parser import (
-                parse_balance_sheet, parse_profit_loss, parse_notes
-            )
-            from src.core.cpp_bridge import compute_variances, compute_ratios_from_raw
-            from src.core.validation import validate_far_data
-            
-            bs_parsed = parse_balance_sheet(form_data['bs_file'])
-            
-            # Step 2: Parse PL
-            progress.setLabelText('📄 Parsing Profit & Loss...')
-            progress.setValue(25)
-            QApplication.processEvents()
-            
-            pl_parsed = parse_profit_loss(form_data['pl_file'])
-            
-            if bs_parsed['cy_year'] != pl_parsed['cy_year']:
-                progress.close()
-                QMessageBox.warning(self, 'Year Mismatch',
-                    f"BS year ({bs_parsed['cy_year']}) and P&L year ({pl_parsed['cy_year']}) don't match!\n"
-                    "Please check your files.")
-                return
-
-            # Scale parsed values by the rounding unit factor
-            round_off = form_data.get('round_off', True)
-            rounding_unit = form_data.get('rounding_unit', 'Lakhs') if round_off else 'Actuals'
-            factor = 1.0
-            decimals = 2
-            if round_off:
-                if rounding_unit == 'Thousands':
-                    factor = 1000.0
-                    decimals = 0
-                elif rounding_unit == 'Lakhs':
-                    factor = 100000.0
-                    decimals = 2
-                elif rounding_unit == 'Millions':
-                    factor = 1000000.0
-                    decimals = 2
-            else:
-                factor = 1.0
-                decimals = 2
-
-            # Scale BS data
-            for row in bs_parsed['data']:
-                if row.get('cy') is not None:
-                    row['cy'] = round(row['cy'] / factor, decimals)
-                if row.get('py') is not None:
-                    row['py'] = round(row['py'] / factor, decimals)
-
-            # Scale PL data
-            for row in pl_parsed['data']:
-                if row.get('cy') is not None:
-                    row['cy'] = round(row['cy'] / factor, decimals)
-                if row.get('py') is not None:
-                    row['py'] = round(row['py'] / factor, decimals)
-            
-            # Step 3: Parse Notes
-            notes_result = {}
-            if form_data.get('notes_required') and form_data.get('notes_files'):
-                progress.setLabelText('📄 Parsing Notes to Accounts...')
-                progress.setValue(35)
-                QApplication.processEvents()
-                
-                for notes_file in form_data['notes_files']:
-                    notes_data = parse_notes(
-                        notes_file,
-                        cy_year=bs_parsed.get('cy_year', 2025),
-                        py_year=bs_parsed.get('py_year', 2024)
-                    )
-                    # Scale Notes data
-                    for sheet_name, note_groups in notes_data.items():
-                        for group in note_groups:
-                            for row in group.get('data', []):
-                                if row.get('cy') is not None:
-                                    row['cy'] = round(row['cy'] / factor, decimals)
-                                if row.get('py') is not None:
-                                    row['py'] = round(row['py'] / factor, decimals)
-                    notes_result.update(notes_data)
-            
-            # Step 4: Compute variances via C++ engine
-            progress.setLabelText('⚡ Computing variances...')
-            progress.setValue(50)
-            QApplication.processEvents()
-            
-            bs_result = compute_variances(bs_parsed['data'])
-            pl_result = compute_variances(pl_parsed['data'])
-            
-            # Step 5: Compute ratios via C++ (which also extracts summaries internally)
-            progress.setLabelText('📐 Calculating financial ratios...')
-            progress.setValue(65)
-            QApplication.processEvents()
-            
-            raw_ratios_result = compute_ratios_from_raw(bs_parsed['data'], pl_parsed['data'])
-            ratios = raw_ratios_result.get('ratios', [])
-            bs_summary = raw_ratios_result.get('bs_summary', {})
-            pl_summary = raw_ratios_result.get('pl_summary', {})
-            
-            # Step 5b: Run validation layer
-            progress.setLabelText('🔍 Validating data...')
-            progress.setValue(70)
-            QApplication.processEvents()
-            
-            validation_report = validate_far_data(
-                bs_parsed['data'], pl_parsed['data'],
-                bs_summary, pl_summary, ratios
-            )
-            
-            # Step 6: Store results
-            progress.setLabelText('📊 Building views...')
-            progress.setValue(80)
-            QApplication.processEvents()
-            
-            cy_year = bs_parsed.get('cy_year', 2025)
-            py_year = bs_parsed.get('py_year', 2024)
-            
-            # Use form input client name; fall back to auto-extracted name from workbook
-            form_client_name = form_data.get('client_name', '').strip()
-            parsed_client_name = bs_parsed.get('client_name', '').strip()
-            client_name = form_client_name if form_client_name else parsed_client_name
-            if not form_client_name and parsed_client_name:
-                logger.info("Using auto-extracted client name: %s", parsed_client_name)
-            
-            rounding_unit = form_data.get('rounding_unit', 'Lakhs') if round_off else 'Actuals'
-            
-            self.app_data.update({
-                'bs_result': bs_result,
-                'pl_result': pl_result,
-                'notes_result': notes_result,
-                'ratios': ratios,
-                'cy_year': cy_year,
-                'py_year': py_year,
-                'client_name': client_name,
-                'firm_name': form_data.get('firm_name', ''),
-                'financial_year': form_data.get('financial_year', ''),
-                'rounding_unit': rounding_unit,
-                'remarks_bs': {},
-                'remarks_pl': {},
-                'validation_report': validation_report,
-            })
-            
-            # Load data into views
-            self.bs_view.load_data(bs_result, client_name, cy_year, py_year, rounding_unit)
-            self.pl_view.load_data(pl_result, client_name, cy_year, py_year, rounding_unit)
-            self.notes_view.load_data(notes_result, client_name, cy_year, py_year, rounding_unit)
-            self.ratio_view.load_data(ratios, client_name, cy_year, py_year)
-            self.dashboard_view.load_data(bs_result, pl_result, ratios,
-                                         client_name, cy_year, py_year, rounding_unit)
-            self.remarks_view.set_data(bs_result, pl_result, form_data)
-            self.export_view.set_export_data(self.app_data)
-            
-            progress.setLabelText('✅ Done!')
-            progress.setValue(100)
-            QApplication.processEvents()
-            
-            # Update status bar with validation summary
-            val_summary = validation_report.summary_text()
-            self.status_items.setText(
-                f'BS: {len(bs_result)} items  |  PL: {len(pl_result)} items  |  {val_summary}')
-            self.status_bar.showMessage('FAR generated successfully', 5000)
-            
-            # Switch to BS view
-            self.sidebar.set_active_module(1)
-            
-            # Toast — show validation result
-            if validation_report.has_failures:
-                self.toast.show_toast(
-                    f'⚠ FAR generated — {len(validation_report.failed)} validation issue(s) detected',
-                    'warning', 6000)
-            else:
-                self.toast.show_toast('✓ FAR generated successfully!', 'success')
-            
-            logger.info("FAR generated: BS=%d rows, PL=%d rows, Ratios=%d",
-                        len(bs_result), len(pl_result), len(ratios))
+        self.generate_worker = GenerateWorker(form_data)
+        self.generate_worker.progress.connect(self._on_generate_progress)
+        self.generate_worker.finished.connect(self._on_generate_finished)
+        self.generate_worker.error.connect(self._on_generate_error)
+        self.generate_worker.start()
         
-        except Exception as e:
-            progress.close()
-            logger.error("FAR generation failed: %s", e, exc_info=True)
-            QMessageBox.critical(self, 'Generation Error',
-                               f'Failed to generate FAR:\n\n{str(e)}')
-            self.toast.show_toast(f'✗ Error: {str(e)[:60]}', 'error')
+    def _on_generate_progress(self, val, text):
+        if hasattr(self, 'progress_dialog'):
+            self.progress_dialog.setValue(val)
+            self.progress_dialog.setLabelText(text)
+            
+    def _on_generate_error(self, err_msg):
+        if hasattr(self, 'progress_dialog'):
+            self.progress_dialog.close()
+        logger.error("FAR generation failed: %s", err_msg)
+        QMessageBox.critical(self, 'Generation Error', f'Failed to generate FAR:\n\n{err_msg}')
+        self.toast.show_toast(f'✗ Error: {err_msg[:60]}', 'error')
+        
+    def _on_generate_finished(self, result):
+        if hasattr(self, 'progress_dialog'):
+            self.progress_dialog.setLabelText('✅ Done!')
+            self.progress_dialog.setValue(100)
+            self.progress_dialog.close()
+            
+        bs_result = result['bs_result']
+        pl_result = result['pl_result']
+        notes_result = result['notes_result']
+        ratios = result['ratios']
+        cy_year = result['cy_year']
+        py_year = result['py_year']
+        parsed_client_name = result['parsed_client_name']
+        validation_report = result['validation_report']
+        
+        form_data = self.app_data['form']
+        form_client_name = form_data.get('client_name', '').strip()
+        client_name = form_client_name if form_client_name else parsed_client_name
+        if not form_client_name and parsed_client_name:
+            logger.info("Using auto-extracted client name: %s", parsed_client_name)
+            
+        round_off = form_data.get('round_off', True)
+        rounding_unit = form_data.get('rounding_unit', 'Lakhs') if round_off else 'Actuals'
+        
+        self.app_data.update({
+            'bs_result': bs_result,
+            'pl_result': pl_result,
+            'notes_result': notes_result,
+            'ratios': ratios,
+            'cy_year': cy_year,
+            'py_year': py_year,
+            'client_name': client_name,
+            'firm_name': form_data.get('firm_name', ''),
+            'financial_year': form_data.get('financial_year', ''),
+            'rounding_unit': rounding_unit,
+            'remarks_bs': {},
+            'remarks_pl': {},
+            'validation_report': validation_report,
+        })
+        
+        # Load data into views
+        self.bs_view.load_data(bs_result, client_name, cy_year, py_year, rounding_unit)
+        self.pl_view.load_data(pl_result, client_name, cy_year, py_year, rounding_unit)
+        self.notes_view.load_data(notes_result, client_name, cy_year, py_year, rounding_unit)
+        self.ratio_view.load_data(ratios, client_name, cy_year, py_year)
+        self.dashboard_view.load_data(bs_result, pl_result, ratios, client_name, cy_year, py_year, rounding_unit)
+        self.remarks_view.set_data(bs_result, pl_result, form_data)
+        self.export_view.set_export_data(self.app_data)
+        
+        val_summary = validation_report.summary_text()
+        self.status_items.setText(
+            f'BS: {len(bs_result)} items  |  PL: {len(pl_result)} items  |  {val_summary}')
+        self.status_bar.showMessage('FAR generated successfully', 5000)
+        
+        # Switch to BS view
+        self.sidebar.set_active_module(1)
+        
+        # Toast
+        if validation_report.has_failures:
+            self.toast.show_toast(
+                f'⚠ FAR generated — {len(validation_report.failed)} validation issue(s) detected',
+                'warning', 6000)
+        else:
+            self.toast.show_toast('✓ FAR generated successfully!', 'success')
+        
+        logger.info("FAR generated: BS=%d rows, PL=%d rows, Ratios=%d",
+                    len(bs_result), len(pl_result), len(ratios))
     
     def _on_remarks_generated(self, bs_remarks, pl_remarks):
         """Handle AI remarks being generated."""

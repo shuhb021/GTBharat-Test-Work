@@ -54,7 +54,7 @@ class FileUploadPanel(QGroupBox):
         btn_row.addWidget(self.browse_btn)
         
         self.status_icon = QLabel('⬜')
-        self.status_icon.setStyleSheet("font-size: 16px; background: transparent;")
+        self.status_icon.setObjectName('statusIcon')
         btn_row.addWidget(self.status_icon)
         
         btn_row.addStretch()
@@ -92,7 +92,7 @@ class FileUploadPanel(QGroupBox):
         if self.file_paths:
             names = [os.path.basename(f) for f in self.file_paths]
             self.path_label.setText(', '.join(names))
-            self.path_label.setStyleSheet("color: #22C55E; background: transparent;")
+            self.path_label.setObjectName('successLabel')
             self.status_icon.setText('✅')
             
             # Try to show sheet names
@@ -129,7 +129,6 @@ class InputForm(QWidget):
         # Scroll area wrapper
         scroll = QScrollArea()
         scroll.setWidgetResizable(True)
-        scroll.setStyleSheet("QScrollArea { border: none; background: #1E1E1E; }")
         
         content = QWidget()
         main_layout = QVBoxLayout(content)
@@ -166,19 +165,7 @@ class InputForm(QWidget):
         
         # Fetch details button
         self.fetch_details_btn = QPushButton("🔍 Auto-Fetch Details from BS File")
-        self.fetch_details_btn.setStyleSheet("""
-            QPushButton {
-                background-color: #2D3748;
-                color: #FFFFFF;
-                border: 1px solid #4A5568;
-                border-radius: 4px;
-                padding: 6px 12px;
-                font-weight: 600;
-            }
-            QPushButton:hover {
-                background-color: #4A5568;
-            }
-        """)
+        self.fetch_details_btn.setObjectName('fetchDetailsBtn')
         self.fetch_details_btn.clicked.connect(self._fetch_details_from_file)
         info_layout.addRow('', self.fetch_details_btn)
         
@@ -215,21 +202,15 @@ class InputForm(QWidget):
         main_layout.addWidget(info_group)
         
 
-        # ── File Uploads ──
-        files_group = QGroupBox('Financial Statements')
+        # ── File Upload ──
+        files_group = QGroupBox('Financial Statement')
         files_layout = QVBoxLayout(files_group)
         files_layout.setSpacing(12)
         files_layout.setContentsMargins(16, 20, 16, 16)
         
-        self.bs_upload = FileUploadPanel('Balance Sheet File')
-        self.bs_upload.fileSelected.connect(self._auto_fill_client_name)
-        files_layout.addWidget(self.bs_upload)
-        
-        self.pl_upload = FileUploadPanel('Profit & Loss File')
-        files_layout.addWidget(self.pl_upload)
-        
-        self.notes_upload = FileUploadPanel('Notes to Accounts Files', multi_select=True)
-        files_layout.addWidget(self.notes_upload)
+        self.fs_upload = FileUploadPanel('Financial Statement File (BS, P&L, Notes)')
+        self.fs_upload.fileSelected.connect(self._auto_fill_client_name)
+        files_layout.addWidget(self.fs_upload)
         
         main_layout.addWidget(files_group)
         
@@ -238,27 +219,10 @@ class InputForm(QWidget):
         btn_row.addStretch()
         
         self.generate_btn = QPushButton('🚀  Generate FAR Workpaper')
+        self.generate_btn.setObjectName('generateFarBtn')
         self.generate_btn.setFixedHeight(48)
         self.generate_btn.setMinimumWidth(280)
         self.generate_btn.setFont(QFont('Segoe UI', 14, QFont.Weight.Bold))
-        self.generate_btn.setStyleSheet("""
-            QPushButton {
-                background-color: #007ACC;
-                color: #FFFFFF;
-                border: none;
-                border-radius: 6px;
-                padding: 12px 32px;
-                font-size: 14px;
-                font-weight: 700;
-            }
-            QPushButton:hover {
-                background-color: #005f9e;
-            }
-            QPushButton:disabled {
-                background-color: #3C3C3C;
-                color: #666666;
-            }
-        """)
         self.generate_btn.clicked.connect(self._on_generate)
         btn_row.addWidget(self.generate_btn)
         
@@ -284,11 +248,11 @@ class InputForm(QWidget):
 
     def _fetch_details_from_file(self):
         """Fetch client name and financial year from the selected Balance Sheet file."""
-        if not self.bs_upload.is_loaded():
-            QMessageBox.warning(self, 'No File Selected', 'Please select a Balance Sheet file first.')
+        if not self.fs_upload.is_loaded():
+            QMessageBox.warning(self, 'No File Selected', 'Please select a Financial Statement file first.')
             return
         
-        filepath = self.bs_upload.get_paths()[0]
+        filepath = self.fs_upload.get_paths()[0]
         try:
             from openpyxl import load_workbook
             from src.core.excel_parser import _extract_client_name, _find_date_columns
@@ -345,10 +309,8 @@ class InputForm(QWidget):
         
         if not self.client_name.text().strip():
             errors.append('Client Name is required')
-        if not self.bs_upload.is_loaded():
-            errors.append('Balance Sheet file is required')
-        if not self.pl_upload.is_loaded():
-            errors.append('Profit & Loss file is required')
+        if not self.fs_upload.is_loaded():
+            errors.append('Financial Statement file is required')
         
         if errors:
             self.error_label.setText('⚠️ ' + ' | '.join(errors))
@@ -402,6 +364,7 @@ class InputForm(QWidget):
         unit_btn = self.unit_group.checkedButton()
         unit_text = unit_btn.text() if unit_btn else 'Lakhs'
         
+        fs_path = self.fs_upload.get_paths()[0] if self.fs_upload.is_loaded() else ''
         form_data = {
             'firm_name': self.firm_name.text().strip() or 'Audit Firm',
             'client_name': self.client_name.text().strip(),
@@ -409,9 +372,9 @@ class InputForm(QWidget):
             'round_off': self.round_off.isChecked(),
             'rounding_unit': unit_text,
             'notes_required': self.notes_required.isChecked(),
-            'bs_file': self.bs_upload.get_paths()[0] if self.bs_upload.is_loaded() else '',
-            'pl_file': self.pl_upload.get_paths()[0] if self.pl_upload.is_loaded() else '',
-            'notes_files': self.notes_upload.get_paths(),
+            'bs_file': fs_path,
+            'pl_file': fs_path,
+            'notes_files': [fs_path] if fs_path else [],
         }
         
         self.generateRequested.emit(form_data)
@@ -421,6 +384,7 @@ class InputForm(QWidget):
         unit_btn = self.unit_group.checkedButton()
         unit_text = unit_btn.text() if unit_btn else 'Lakhs'
         
+        fs_path = self.fs_upload.get_paths()[0] if self.fs_upload.is_loaded() else ''
         return {
             'firm_name': self.firm_name.text().strip() or 'Audit Firm',
             'client_name': self.client_name.text().strip(),
@@ -428,7 +392,7 @@ class InputForm(QWidget):
             'round_off': self.round_off.isChecked(),
             'rounding_unit': unit_text,
             'notes_required': self.notes_required.isChecked(),
-            'bs_file': self.bs_upload.get_paths()[0] if self.bs_upload.is_loaded() else '',
-            'pl_file': self.pl_upload.get_paths()[0] if self.pl_upload.is_loaded() else '',
-            'notes_files': self.notes_upload.get_paths(),
+            'bs_file': fs_path,
+            'pl_file': fs_path,
+            'notes_files': [fs_path] if fs_path else [],
         }

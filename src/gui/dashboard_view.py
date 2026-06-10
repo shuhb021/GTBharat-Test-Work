@@ -18,14 +18,14 @@ import matplotlib.pyplot as plt
 
 
 # Chart colors
-BLUE = '#007ACC'
+BLUE = '#4A1A6B'
 GREEN = '#22C55E'
 YELLOW = '#EAB308'
 RED = '#EF4444'
-BG_MAIN = '#1E1E1E'
-BG_CARD = '#252526'
-TEXT_COLOR = '#CCCCCC'
-BORDER = '#3C3C3C'
+BG_MAIN = '#FFFFFF'
+BG_CARD = '#FFFFFF'
+TEXT_COLOR = '#555555'
+BORDER = '#E0E0E0'
 
 
 class ChartCard(QFrame):
@@ -34,13 +34,7 @@ class ChartCard(QFrame):
     def __init__(self, title='', parent=None):
         super().__init__(parent)
         self.setObjectName('cardFrame')
-        self.setStyleSheet("""
-            QFrame#cardFrame {
-                background-color: #252526;
-                border: 1px solid #3C3C3C;
-                border-radius: 6px;
-            }
-        """)
+        self.setObjectName('chartCardFrame')
         
         layout = QVBoxLayout(self)
         layout.setContentsMargins(8, 8, 8, 8)
@@ -48,15 +42,7 @@ class ChartCard(QFrame):
         
         if title:
             label = QLabel(title)
-            label.setStyleSheet("""
-                QLabel {
-                    color: #FFFFFF;
-                    font-size: 12px;
-                    font-weight: 600;
-                    padding: 4px;
-                    background: transparent;
-                }
-            """)
+            label.setObjectName('chartTitle')
             label.setAlignment(Qt.AlignmentFlag.AlignCenter)
             layout.addWidget(label)
         
@@ -64,7 +50,6 @@ class ChartCard(QFrame):
         self.figure = Figure(figsize=(5, 3.5), dpi=100)
         self.figure.patch.set_facecolor(BG_CARD)
         self.canvas = FigureCanvas(self.figure)
-        self.canvas.setStyleSheet("background-color: #252526;")
         layout.addWidget(self.canvas)
     
     def get_ax(self):
@@ -75,7 +60,7 @@ class ChartCard(QFrame):
         ax.tick_params(colors=TEXT_COLOR, labelsize=9)
         for spine in ax.spines.values():
             spine.set_color(BORDER)
-        ax.title.set_color('#FFFFFF')
+        ax.title.set_color('#4A1A6B')
         ax.xaxis.label.set_color(TEXT_COLOR)
         ax.yaxis.label.set_color(TEXT_COLOR)
         return ax
@@ -96,7 +81,6 @@ class DashboardView(QWidget):
     def _setup_ui(self):
         scroll = QScrollArea()
         scroll.setWidgetResizable(True)
-        scroll.setStyleSheet("QScrollArea { border: none; background: #1E1E1E; }")
         
         content = QWidget()
         main_layout = QVBoxLayout(content)

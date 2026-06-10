@@ -136,7 +136,7 @@ class RemarksView(QWidget):
         self.pl_count.setObjectName('mutedLabel')
         stats.addWidget(self.pl_count)
         self.total_generated = QLabel('Generated: 0')
-        self.total_generated.setStyleSheet("color: #22C55E; font-size: 12px; background: transparent;")
+        self.total_generated.setObjectName('generatedCount')
         stats.addWidget(self.total_generated)
         stats.addStretch()
         layout.addLayout(stats)
@@ -288,7 +288,9 @@ class RemarksView(QWidget):
         self.generate_btn.setEnabled(True)
         self.regen_all_btn.setEnabled(True)
         self.status_label.setText('✅ All remarks generated!')
-        self.status_label.setStyleSheet("color: #22C55E; font-size: 12px; background: transparent;")
+        self.status_label.setObjectName('successLabel')
+        self.status_label.style().unpolish(self.status_label)
+        self.status_label.style().polish(self.status_label)
         
         self.remarksGenerated.emit(self.bs_remarks, self.pl_remarks)
     
@@ -296,8 +298,10 @@ class RemarksView(QWidget):
         self.progress_bar.setVisible(False)
         self.generate_btn.setEnabled(True)
         self.status_label.setText(f'❌ Error: {error_msg}')
-        self.status_label.setStyleSheet("color: #EF4444; font-size: 12px; background: transparent;")
+        self.status_label.setObjectName('errorLabel')
+        self.status_label.style().unpolish(self.status_label)
+        self.status_label.style().polish(self.status_label)
 
 
-BLUE = '#007ACC'
+BLUE = '#4A1A6B'
 GREEN = '#22C55E'

@@ -84,3 +84,34 @@ FAR_EXPORT void free_result(const char* ptr) {
 }
 
 } // extern "C"
+
+extern "C" {
+FAR_EXPORT void compute_variances_fast(FinRow* rows, int count) {
+    for (int i = 0; i < count; ++i) {
+        double cy = rows[i].cy;
+        double py = rows[i].py;
+        
+        double variance_abs = cy - py;
+        double variance_pct = 0.0;
+        bool flag = false;
+        
+        if (py == 0.0) {
+            if (cy != 0.0) {
+                variance_pct = -999999.0; 
+                flag = true;
+            }
+        } else {
+            variance_pct = (variance_abs / std::fabs(py)) * 100.0;
+            flag = std::fabs(variance_pct) >= 10.0;
+        }
+        
+        rows[i].variance_abs = std::round(variance_abs * 100.0) / 100.0;
+        if (variance_pct != -999999.0) {
+            rows[i].variance_pct = std::round(variance_pct * 100.0) / 100.0;
+        } else {
+            rows[i].variance_pct = -999999.0;
+        }
+        rows[i].flag = flag;
+    }
+}
+}

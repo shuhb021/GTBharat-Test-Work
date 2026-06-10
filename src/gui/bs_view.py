@@ -40,7 +40,7 @@ class AnalysisTableView(QWidget):
         left_layout = QVBoxLayout()
         
         self.client_label = QLabel('Client: —')
-        self.client_label.setStyleSheet("color: #FFFFFF; font-size: 14px; font-weight: 600; background: transparent;")
+        self.client_label.setObjectName('clientInfoLabel')
         left_layout.addWidget(self.client_label)
         
         self.title_label = QLabel(self.title)
@@ -61,7 +61,7 @@ class AnalysisTableView(QWidget):
         # Right: Legends
         right_layout = QVBoxLayout()
         legends_title = QLabel('Legends')
-        legends_title.setStyleSheet("color: #007ACC; font-weight: 700; font-size: 12px; background: transparent;")
+        legends_title.setObjectName('legendTitle')
         right_layout.addWidget(legends_title)
         
         legends = [
@@ -72,9 +72,9 @@ class AnalysisTableView(QWidget):
         for key, desc in legends:
             row = QHBoxLayout()
             k = QLabel(key)
-            k.setStyleSheet("color: #007ACC; font-weight: 700; font-size: 11px; min-width: 14px; background: transparent;")
+            k.setObjectName('legendKey')
             d = QLabel(f'= {desc}')
-            d.setStyleSheet("color: #888888; font-size: 11px; background: transparent;")
+            d.setObjectName('legendDesc')
             row.addWidget(k)
             row.addWidget(d)
             row.addStretch()
@@ -93,7 +93,7 @@ class AnalysisTableView(QWidget):
         stats_layout.addWidget(self.total_label)
         
         self.flagged_label = QLabel('Flagged (≥10%): 0')
-        self.flagged_label.setStyleSheet("color: #EAB308; font-size: 12px; background: transparent;")
+        self.flagged_label.setObjectName('flaggedLabel')
         stats_layout.addWidget(self.flagged_label)
         
         stats_layout.addStretch()
@@ -170,7 +170,7 @@ class AnalysisTableView(QWidget):
                 if is_bold:
                     font = QFont('Segoe UI', 11, QFont.Weight.Bold)
                     item.setFont(font)
-                    item.setBackground(QBrush(QColor('#2A2D2E')))
+                    item.setBackground(QBrush(QColor('#F5F0FA')))
                 
                 if flag:
                     item.setBackground(QBrush(QColor('#EAB308')))

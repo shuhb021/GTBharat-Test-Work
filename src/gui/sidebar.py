@@ -1,6 +1,7 @@
 """
 FAR Automation Tool — Sidebar Navigation
-Left panel with module navigation buttons styled like VS Code's activity bar.
+Left panel with module navigation buttons — Light Purple Professional Theme.
+Uses QSS property selectors instead of per-widget setStyleSheet for performance.
 """
 
 from PyQt6.QtWidgets import (
@@ -21,43 +22,15 @@ class SidebarButton(QPushButton):
         self.setFixedHeight(44)
         self.setCursor(Qt.CursorShape.PointingHandCursor)
         self.setFont(QFont('Segoe UI', 12))
-        self._update_style(False)
-    
-    def _update_style(self, active):
-        if active:
-            self.setStyleSheet("""
-                QPushButton {
-                    background-color: #1E1E1E;
-                    color: #FFFFFF;
-                    border: none;
-                    border-left: 3px solid #007ACC;
-                    text-align: left;
-                    padding-left: 12px;
-                    font-size: 12px;
-                    font-weight: 600;
-                }
-            """)
-        else:
-            self.setStyleSheet("""
-                QPushButton {
-                    background-color: #252526;
-                    color: #CCCCCC;
-                    border: none;
-                    border-left: 3px solid transparent;
-                    text-align: left;
-                    padding-left: 12px;
-                    font-size: 12px;
-                    font-weight: 400;
-                }
-                QPushButton:hover {
-                    background-color: #2A2D2E;
-                    color: #FFFFFF;
-                }
-            """)
+        # Use property for QSS-driven active/inactive styling
+        self.setProperty("sidebarActive", False)
     
     def set_active(self, active):
         self.setChecked(active)
-        self._update_style(active)
+        self.setProperty("sidebarActive", active)
+        # Tell Qt to re-evaluate QSS for this widget only
+        self.style().unpolish(self)
+        self.style().polish(self)
 
 
 class Sidebar(QWidget):
@@ -90,37 +63,23 @@ class Sidebar(QWidget):
         layout.setContentsMargins(0, 0, 0, 0)
         layout.setSpacing(0)
         
-        # App title
+        # Firm name header
         title_frame = QFrame()
-        title_frame.setStyleSheet("""
-            QFrame {
-                background-color: #252526;
-                border-bottom: 1px solid #3C3C3C;
-                padding: 8px;
-            }
-        """)
+        title_frame.setObjectName('sidebarTitleFrame')
         title_layout = QVBoxLayout(title_frame)
-        title_layout.setContentsMargins(16, 12, 16, 12)
+        title_layout.setContentsMargins(16, 14, 16, 6)
+        
+        firm_label = QLabel('Walker Chandiok & Co LLP')
+        firm_label.setObjectName('sidebarFirmLabel')
+        firm_label.setWordWrap(True)
+        title_layout.addWidget(firm_label)
         
         title_label = QLabel('FAR Tool')
-        title_label.setStyleSheet("""
-            QLabel {
-                color: #007ACC;
-                font-size: 18px;
-                font-weight: 700;
-                background: transparent;
-            }
-        """)
+        title_label.setObjectName('sidebarTitleLabel')
         title_layout.addWidget(title_label)
         
         version_label = QLabel('v1.0.0')
-        version_label.setStyleSheet("""
-            QLabel {
-                color: #666666;
-                font-size: 10px;
-                background: transparent;
-            }
-        """)
+        version_label.setObjectName('sidebarVersionLabel')
         title_layout.addWidget(version_label)
         
         layout.addWidget(title_frame)
@@ -137,8 +96,8 @@ class Sidebar(QWidget):
         
         # Separator
         sep = QFrame()
+        sep.setObjectName('sidebarSep')
         sep.setFrameShape(QFrame.Shape.HLine)
-        sep.setStyleSheet("QFrame { background-color: #3C3C3C; max-height: 1px; }")
         layout.addWidget(sep)
         
         # Settings button
@@ -146,16 +105,14 @@ class Sidebar(QWidget):
         self.settings_btn.clicked.connect(lambda: self._on_button_clicked(-1))
         layout.addWidget(self.settings_btn)
         
+        # Copyright footer
+        copyright_label = QLabel('© 2024 Walker Chandiok & Co LLP.\nAll rights reserved.')
+        copyright_label.setObjectName('sidebarCopyright')
+        copyright_label.setWordWrap(True)
+        layout.addWidget(copyright_label)
+        
         # Set initial active
         self.buttons[0].set_active(True)
-        
-        # Frame styling
-        self.setStyleSheet("""
-            QWidget#sidebarFrame {
-                background-color: #252526;
-                border-right: 1px solid #3C3C3C;
-            }
-        """)
     
     def _on_button_clicked(self, index):
         # Deactivate all
