@@ -20,6 +20,8 @@ from src.gui.ratio_view import RatioView
 from src.gui.dashboard_view import DashboardView
 from src.gui.remarks_view import RemarksView
 from src.gui.export_view import ExportView
+from src.gui.settings_view import SettingsView
+from src.gui.comparison_view import ComparisonView
 
 logger = logging.getLogger(__name__)
 
@@ -36,6 +38,7 @@ class GenerateWorker(QThread):
         try:
             from src.core.data_engine import DataEngine
             from src.core.validation import validate_far_data
+            import traceback
             
             engine = DataEngine()
             
@@ -43,15 +46,30 @@ class GenerateWorker(QThread):
                 self.progress.emit(pct, msg)
                 
             # Offload to DataEngine which handles Caching, Polars, and Multiprocessing
-            payload = engine.process_far_data(self.form_data, progress_callback=on_progress)
+            try:
+                payload = engine.process_far_data(self.form_data, progress_callback=on_progress)
+            except Exception as e:
+                logger.error("DataEngine.process_far_data failed with full traceback:")
+                traceback.print_exc()
+                logger.error("FULL TRACEBACK:\n%s", traceback.format_exc())
+                raise
             
-            bs_result = payload['bs_data']
-            pl_result = payload['pl_data']
-            notes_result = payload['notes_data']
-            ratios = payload['ratios']
-            bs_summary = payload['bs_summary']
-            pl_summary = payload['pl_summary']
-            meta = payload['meta']
+            if payload is None:
+                raise ValueError("DataEngine.process_far_data returned None")
+            
+            try:
+                bs_result = payload['bs_data']
+                pl_result = payload['pl_data']
+                notes_result = payload['notes_data']
+                ratios = payload['ratios']
+                bs_summary = payload['bs_summary']
+                pl_summary = payload['pl_summary']
+                meta = payload['meta']
+            except Exception as e:
+                logger.error("Failed to unpack payload keys: %s", e, exc_info=True)
+                logger.error("Payload type: %s", type(payload))
+                logger.error("Payload keys: %s", list(payload.keys()) if isinstance(payload, dict) else "Not a dict")
+                raise
             
             self.progress.emit(85, '🔍 Validating data...')
             validation_report = validate_far_data(
@@ -65,6 +83,15 @@ class GenerateWorker(QThread):
                 'bs_result': bs_result,
                 'pl_result': pl_result,
                 'notes_result': notes_result,
+                'bs_notes': payload.get('bs_notes', []),
+                'bs_signatures': payload.get('bs_signatures', []),
+                'bs_footers': payload.get('bs_footers', []),
+                'pl_notes': payload.get('pl_notes', []),
+                'pl_signatures': payload.get('pl_signatures', []),
+                'pl_footers': payload.get('pl_footers', []),
+                'notes_sheet_notes': payload.get('notes_sheet_notes', {}),
+                'notes_signatures': payload.get('notes_signatures', {}),
+                'notes_footers': payload.get('notes_footers', {}),
                 'ratios': ratios,
                 'cy_year': meta.get('cy_year', 2025),
                 'py_year': meta.get('py_year', 2024),
@@ -74,6 +101,8 @@ class GenerateWorker(QThread):
             self.finished.emit(result_dict)
         except Exception as e:
             import traceback
+            logger.error("GenerateWorker exception: %s", e, exc_info=True)
+            logger.error("FULL TRACEBACK:\n%s", traceback.format_exc())
             traceback.print_exc()
             self.error.emit(str(e))
 
@@ -185,11 +214,86 @@ class MainWindow(QMainWindow):
         
         # Application state
         self.app_data = {}
+        self.app_config = self._load_config()
         
         self._setup_ui()
         self._setup_menu()
         self._setup_shortcuts()
         self._setup_statusbar()
+        
+        # Load config into settings view
+        self.settings_view.load_config(self.app_config)
+        
+    def _load_config(self):
+        import json
+        import os
+        project_root = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+        config_path = os.path.join(project_root, 'config.json')
+        defaults = {
+            'font_family': 'Segoe UI',
+            'font_size': 11,
+            'ui_zoom': 100
+        }
+        if os.path.exists(config_path):
+            try:
+                with open(config_path, 'r', encoding='utf-8') as f:
+                    return {**defaults, **json.load(f)}
+            except Exception:
+                pass
+        return defaults
+
+    def _save_config(self):
+        import json
+        import os
+        project_root = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+        config_path = os.path.join(project_root, 'config.json')
+        try:
+            with open(config_path, 'w', encoding='utf-8') as f:
+                json.dump(self.app_config, f, indent=4)
+        except Exception as e:
+            logger.warning("Failed to save config.json: %s", e)
+
+    def apply_global_settings(self, family, size, zoom):
+        """Dynamically scales and applies stylesheet and base font settings."""
+        self.app_config = {
+            'font_family': family,
+            'font_size': size,
+            'ui_zoom': zoom
+        }
+        self._save_config()
+        
+        # Load and scale stylesheet
+        import os
+        project_root = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+        qss_path = os.path.join(project_root, 'src', 'assets', 'styles.qss')
+        if os.path.exists(qss_path):
+            try:
+                with open(qss_path, 'r', encoding='utf-8') as f:
+                    stylesheet = f.read()
+                
+                import re
+                zoom_factor = zoom / 100.0
+                size_factor = size / 11.0
+                total_factor = zoom_factor * size_factor
+                
+                # Replace font family
+                stylesheet = re.sub(r"font-family:\s*[^;]+;", f"font-family: '{family}', sans-serif;", stylesheet)
+                
+                # Scale font size
+                def scale_size(match):
+                    val = int(match.group(1))
+                    new_val = max(8, int(round(val * total_factor)))
+                    return f"font-size: {new_val}px"
+                stylesheet = re.sub(r"font-size:\s*(\d+)\s*px", scale_size, stylesheet)
+                
+                QApplication.instance().setStyleSheet(stylesheet)
+            except Exception as e:
+                logger.warning("Failed to scale QSS: %s", e)
+            
+        # Set application base font size
+        scaled_size = int(round(size * (zoom / 100.0)))
+        font = QFont(family, scaled_size)
+        QApplication.instance().setFont(font)
     
     def _setup_ui(self):
         # Central widget
@@ -227,19 +331,14 @@ class MainWindow(QMainWindow):
         self.notes_view = NotesView()
         self.ratio_view = RatioView()
         self.dashboard_view = DashboardView()
+        self.comparison_view = ComparisonView()
         self.remarks_view = RemarksView()
         self.remarks_view.remarksGenerated.connect(self._on_remarks_generated)
         self.export_view = ExportView()
         
-        # Settings placeholder
-        self.settings_view = QWidget()
-        settings_layout = QVBoxLayout(self.settings_view)
-        settings_layout.setContentsMargins(32, 24, 32, 24)
-        settings_title = QLabel('⚙️ Settings')
-        settings_title.setObjectName('headingLabel')
-        settings_layout.addWidget(settings_title)
-        settings_layout.addWidget(QLabel('Settings panel — coming soon.'))
-        settings_layout.addStretch()
+        # Create Settings view
+        self.settings_view = SettingsView()
+        self.settings_view.settingsChanged.connect(self.apply_global_settings)
         
         # Add to stack
         self.stack.addWidget(self.input_form)       # 0
@@ -248,9 +347,10 @@ class MainWindow(QMainWindow):
         self.stack.addWidget(self.notes_view)        # 3
         self.stack.addWidget(self.ratio_view)        # 4
         self.stack.addWidget(self.dashboard_view)    # 5
-        self.stack.addWidget(self.remarks_view)      # 6
-        self.stack.addWidget(self.export_view)       # 7
-        self.stack.addWidget(self.settings_view)     # 8
+        self.stack.addWidget(self.comparison_view)   # 6
+        self.stack.addWidget(self.remarks_view)      # 7
+        self.stack.addWidget(self.export_view)       # 8
+        self.stack.addWidget(self.settings_view)     # 9
         
         right_panel.addWidget(self.stack)
         main_layout.addLayout(right_panel)
@@ -271,7 +371,7 @@ class MainWindow(QMainWindow):
         
         export_action = QAction('&Export', self)
         export_action.setShortcut('Ctrl+E')
-        export_action.triggered.connect(lambda: self.sidebar.set_active_module(7))
+        export_action.triggered.connect(lambda: self.sidebar.set_active_module(8))
         file_menu.addAction(export_action)
         
         file_menu.addSeparator()
@@ -321,8 +421,8 @@ class MainWindow(QMainWindow):
         """Handle sidebar module navigation."""
         if index == -1:
             # Settings
-            self.stack.setCurrentIndex(8)
-        elif 0 <= index <= 7:
+            self.stack.setCurrentIndex(9)
+        elif 0 <= index <= 8:
             self.stack.setCurrentIndex(index)
     
     def _on_generate(self, form_data):
@@ -340,7 +440,8 @@ class MainWindow(QMainWindow):
         )
         
         # Show progress dialog
-        self.progress_dialog = QProgressDialog('Generating FAR...', None, 0, 100, self)
+        report_type = form_data.get('report_type', 'FAR')
+        self.progress_dialog = QProgressDialog(f'Generating {report_type}...', None, 0, 100, self)
         self.progress_dialog.setWindowTitle('Processing')
         self.progress_dialog.setWindowModality(Qt.WindowModality.WindowModal)
         self.progress_dialog.setMinimumWidth(400)
@@ -394,6 +495,15 @@ class MainWindow(QMainWindow):
             'bs_result': bs_result,
             'pl_result': pl_result,
             'notes_result': notes_result,
+            'bs_notes': result.get('bs_notes', []),
+            'bs_signatures': result.get('bs_signatures', []),
+            'bs_footers': result.get('bs_footers', []),
+            'pl_notes': result.get('pl_notes', []),
+            'pl_signatures': result.get('pl_signatures', []),
+            'pl_footers': result.get('pl_footers', []),
+            'notes_sheet_notes': result.get('notes_sheet_notes', {}),
+            'notes_signatures': result.get('notes_signatures', {}),
+            'notes_footers': result.get('notes_footers', {}),
             'ratios': ratios,
             'cy_year': cy_year,
             'py_year': py_year,
@@ -404,16 +514,48 @@ class MainWindow(QMainWindow):
             'remarks_bs': {},
             'remarks_pl': {},
             'validation_report': validation_report,
+            'report_type': form_data.get('report_type', 'FAR'),
         })
         
-        # Load data into views
-        self.bs_view.load_data(bs_result, client_name, cy_year, py_year, rounding_unit)
-        self.pl_view.load_data(pl_result, client_name, cy_year, py_year, rounding_unit)
-        self.notes_view.load_data(notes_result, client_name, cy_year, py_year, rounding_unit)
-        self.ratio_view.load_data(ratios, client_name, cy_year, py_year)
-        self.dashboard_view.load_data(bs_result, pl_result, ratios, client_name, cy_year, py_year, rounding_unit)
-        self.remarks_view.set_data(bs_result, pl_result, form_data)
-        self.export_view.set_export_data(self.app_data)
+        # Load data into views with fault isolation
+        try:
+            self.bs_view.load_data(
+                bs_result, client_name, cy_year, py_year, rounding_unit,
+                notes=result.get('bs_notes', []),
+                signatures=result.get('bs_signatures', []),
+                footers=result.get('bs_footers', [])
+            )
+            self.pl_view.load_data(
+                pl_result, client_name, cy_year, py_year, rounding_unit,
+                notes=result.get('pl_notes', []),
+                signatures=result.get('pl_signatures', []),
+                footers=result.get('pl_footers', [])
+            )
+        except Exception as e:
+            logger.error(f"Failed to load BS/PL view: {e}")
+            
+        try:
+            self.notes_view.load_data(
+                notes_result, client_name, cy_year, py_year, rounding_unit,
+                sheet_notes=result.get('notes_sheet_notes', {}),
+                signatures=result.get('notes_signatures', {}),
+                footers=result.get('notes_footers', {})
+            )
+        except Exception as e:
+            logger.error(f"Failed to load Notes view: {e}")
+            
+        try:
+            self.ratio_view.load_data(ratios, client_name, cy_year, py_year)
+            self.dashboard_view.load_data(bs_result, pl_result, ratios, client_name, cy_year, py_year, rounding_unit)
+        except Exception as e:
+            logger.error(f"Failed to load Ratio/Dashboard views: {e}")
+            
+        try:
+            self.remarks_view.set_data(bs_result, pl_result, form_data)
+            self.comparison_view.load_data(self.app_data)
+            self.export_view.set_export_data(self.app_data)
+        except Exception as e:
+            logger.error(f"Failed to setup Remarks/Comparison/Export views: {e}")
         
         val_summary = validation_report.summary_text()
         self.status_items.setText(
@@ -424,12 +566,13 @@ class MainWindow(QMainWindow):
         self.sidebar.set_active_module(1)
         
         # Toast
+        report_type = self.app_data.get('report_type', 'FAR')
         if validation_report.has_failures:
             self.toast.show_toast(
-                f'⚠ FAR generated — {len(validation_report.failed)} validation issue(s) detected',
+                f'⚠ {report_type} generated — {len(validation_report.failed)} validation issue(s) detected',
                 'warning', 6000)
         else:
-            self.toast.show_toast('✓ FAR generated successfully!', 'success')
+            self.toast.show_toast(f'✓ {report_type} generated successfully!', 'success')
         
         logger.info("FAR generated: BS=%d rows, PL=%d rows, Ratios=%d",
                     len(bs_result), len(pl_result), len(ratios))

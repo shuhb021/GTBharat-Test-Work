@@ -75,27 +75,63 @@ def _py_compute_variances(data):
     """Python fallback for variance computation."""
     results = []
     for row in data:
-        cy = float(row.get('cy', 0) or 0)
-        py = float(row.get('py', 0) or 0)
-        variance_abs = cy - py
+        cy_val = row.get('cy')
+        py_val = row.get('py')
 
-        if py == 0:
-            if cy == 0:
-                variance_pct = 0.0
-                display_pct = "0.0%"
+        # Determine missing-ness:
+        # None  = truly blank in source → show '-NA-'
+        # '-'   = dash in source        → show '-'
+        # float = number                → show value
+        cy_missing = cy_val is None   # blank → -NA-
+        py_missing = py_val is None   # blank → -NA-
+        cy_dash = cy_val == '-'        # dash  → -
+        py_dash = py_val == '-'        # dash  → -
+
+        cy_absent = cy_missing or cy_dash  # no numeric value
+        py_absent = py_missing or py_dash
+
+        if cy_absent and py_absent:
+            # Both have no numeric value
+            if cy_missing and py_missing:
+                # Both truly blank
+                disp_cy = '-NA-'
+                disp_py = '-NA-'
+                display_pct = '-NA-'
+            elif cy_dash and py_dash:
+                # Both were dashes in source
+                disp_cy = '-'
+                disp_py = '-'
+                display_pct = '-'
             else:
-                variance_pct = float('inf')
-                display_pct = "N/A"
+                # Mixed: one blank, one dash — treat as no data
+                disp_cy = '-NA-' if cy_missing else '-'
+                disp_py = '-NA-' if py_missing else '-'
+                display_pct = '-'
+            variance_abs = None
+            variance_pct = None
+            flag = False
         else:
-            variance_pct = (variance_abs / abs(py)) * 100.0
-            display_pct = f"{variance_pct:.1f}%"
+            cy = float(cy_val) if not cy_absent else 0.0
+            py = float(py_val) if not py_absent else 0.0
+            variance_abs = cy - py
 
-        abs_pct = 0.0 if (py == 0 and cy == 0) else (100.0 if py == 0 else abs(variance_pct))
-        flag = abs_pct >= 10.0
+            if py == 0:
+                if cy == 0:
+                    variance_pct = 0.0
+                    display_pct = '0.0%'
+                else:
+                    variance_pct = float('inf')
+                    display_pct = 'N/A'
+            else:
+                variance_pct = (variance_abs / abs(py)) * 100.0
+                display_pct = f'{variance_pct:.1f}%'
+
+            abs_pct = 0.0 if (py == 0 and cy == 0) else (100.0 if py == 0 else abs(variance_pct))
+            flag = abs_pct >= 10.0
 
         result = dict(row)
-        result['variance_abs'] = round(variance_abs, 2)
-        result['variance_pct'] = round(variance_pct, 2) if not math.isinf(variance_pct) else None
+        result['variance_abs'] = round(variance_abs, 2) if variance_abs is not None else None
+        result['variance_pct'] = round(variance_pct, 2) if (variance_pct is not None and not math.isinf(variance_pct)) else None
         result['display_pct'] = display_pct
         result['flag'] = flag
         results.append(result)
@@ -245,8 +281,10 @@ def compute_variances(data):
             row_array = (FinRow * count)()
             
             for i, row in enumerate(data):
-                row_array[i].cy = float(row.get('cy', 0) or 0)
-                row_array[i].py = float(row.get('py', 0) or 0)
+                cy_val = row.get('cy')
+                py_val = row.get('py')
+                row_array[i].cy = float(cy_val) if cy_val not in (None, '-') else 0.0
+                row_array[i].py = float(py_val) if py_val not in (None, '-') else 0.0
                 
             # Execute natively in C++ via flat memory pointer
             _dll.compute_variances_fast(row_array, count)
@@ -255,17 +293,31 @@ def compute_variances(data):
             results = []
             for i, row in enumerate(data):
                 res = dict(row)
-                res['variance_abs'] = row_array[i].variance_abs
-                v_pct = row_array[i].variance_pct
-                
-                if v_pct == -999999.0:
+                cy_val = row.get('cy')
+                py_val = row.get('py')
+                cy_absent = cy_val is None or cy_val == '-'
+                py_absent = py_val is None or py_val == '-'
+                if cy_absent and py_absent:
+                    res['variance_abs'] = None
                     res['variance_pct'] = None
-                    res['display_pct'] = "N/A"
+                    # None = blank → -NA-, '-' = dash → -
+                    if cy_val is None and py_val is None:
+                        res['display_pct'] = '-NA-'
+                    else:
+                        res['display_pct'] = '-'
+                    res['flag'] = False
                 else:
-                    res['variance_pct'] = v_pct
-                    res['display_pct'] = f"{v_pct:.1f}%"
+                    res['variance_abs'] = row_array[i].variance_abs
+                    v_pct = row_array[i].variance_pct
                     
-                res['flag'] = row_array[i].flag
+                    if v_pct == -999999.0:
+                        res['variance_pct'] = None
+                        res['display_pct'] = 'N/A'
+                    else:
+                        res['variance_pct'] = v_pct
+                        res['display_pct'] = f'{v_pct:.1f}%'
+                        
+                    res['flag'] = row_array[i].flag
                 results.append(res)
             return results
         except Exception as e:
@@ -274,10 +326,34 @@ def compute_variances(data):
     # Legacy JSON method fallback
     if _dll:
         try:
-            json_in = json.dumps(data).encode('utf-8')
+            # Prepare data without None for JSON DLL path
+            data_clean = []
+            for row in data:
+                res = dict(row)
+                if res.get('cy') is None: res['cy'] = 0.0
+                if res.get('py') is None: res['py'] = 0.0
+                data_clean.append(res)
+                
+            json_in = json.dumps(data_clean).encode('utf-8')
             result_ptr = _dll.compute_variances(json_in)
             result = json.loads(result_ptr.decode('utf-8'))
             _dll.free_result(result_ptr)
+            
+            # Restore missing labels
+            for i, row in enumerate(data):
+                cy_val = row.get('cy')
+                py_val = row.get('py')
+                cy_absent = cy_val is None or cy_val == '-'
+                py_absent = py_val is None or py_val == '-'
+                if cy_absent and py_absent:
+                    result[i]['variance_abs'] = None
+                    result[i]['variance_pct'] = None
+                    # None = blank → -NA-, '-' = dash → -
+                    if cy_val is None and py_val is None:
+                        result[i]['display_pct'] = '-NA-'
+                    else:
+                        result[i]['display_pct'] = '-'
+                    result[i]['flag'] = False
             return result
         except Exception as e:
             pass

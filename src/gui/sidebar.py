@@ -45,6 +45,7 @@ class Sidebar(QWidget):
         ('📋', 'Notes'),
         ('📐', 'Ratios'),
         ('📉', 'Dashboard'),
+        ('⚖️', 'YoY Comparison'),
         ('🤖', 'AI Remarks'),
         ('💾', 'Export'),
     ]
@@ -104,12 +105,6 @@ class Sidebar(QWidget):
         self.settings_btn = SidebarButton('⚙️', 'Settings', -1)
         self.settings_btn.clicked.connect(lambda: self._on_button_clicked(-1))
         layout.addWidget(self.settings_btn)
-        
-        # Copyright footer
-        copyright_label = QLabel('© 2024 Walker Chandiok & Co LLP.\nAll rights reserved.')
-        copyright_label.setObjectName('sidebarCopyright')
-        copyright_label.setWordWrap(True)
-        layout.addWidget(copyright_label)
         
         # Set initial active
         self.buttons[0].set_active(True)

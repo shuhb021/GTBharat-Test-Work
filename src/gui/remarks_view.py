@@ -202,8 +202,7 @@ class RemarksView(QWidget):
             # Type
             type_item = QTableWidgetItem(stmt_type)
             type_item.setTextAlignment(Qt.AlignmentFlag.AlignCenter)
-            type_item.setBackground(QBrush(QColor(BLUE if stmt_type == 'BS' else GREEN)))
-            type_item.setForeground(QBrush(QColor('#FFFFFF')))
+            type_item.setForeground(QBrush(QColor('#000000')))
             type_item.setFont(QFont('Segoe UI', 10, QFont.Weight.Bold))
             type_item.setFlags(type_item.flags() & ~Qt.ItemFlag.ItemIsEditable)
             self.table.setItem(table_row, 0, type_item)
