@@ -130,7 +130,7 @@ class AnalysisTableView(QWidget):
         layout.addWidget(self.table)
     
     def load_data(self, data, client_name='', cy_year=None, py_year=None,
-                  rounding_unit='Lakhs', remarks=None):
+                  rounding_unit='Lakhs', remarks=None, notes=None, signatures=None, footers=None):
         """Populate the table with parsed and computed data."""
         self.data = data
         self.remarks = remarks or {}
@@ -143,7 +143,33 @@ class AnalysisTableView(QWidget):
         self.unit_label.setText(f'(Rs. in {rounding_unit})')
         
         # Update table
-        self.table.setRowCount(len(data))
+        total_rows = len(data)
+        has_extra = bool(notes or signatures or footers)
+        extra_rows_list = []
+        
+        if has_extra:
+            # 3 blank rows
+            for _ in range(3):
+                extra_rows_list.append(([''] * 7, True, '#F9FAFB', False))
+            
+            if notes:
+                for n_row in notes:
+                    extra_rows_list.append((n_row, False, '#FFFFFF', False))
+            
+            if signatures:
+                if notes:
+                    extra_rows_list.append(([''] * 7, True, '#FFFFFF', False))
+                for s_row in signatures:
+                    extra_rows_list.append((s_row, False, '#FFFFFF', False))
+            
+            if footers:
+                if notes or signatures:
+                    extra_rows_list.append(([''] * 7, True, '#FFFFFF', False))
+                for f_row in footers:
+                    extra_rows_list.append((f_row, False, '#FFFFFF', False))
+                    
+        total_rows += len(extra_rows_list)
+        self.table.setRowCount(total_rows)
         
         flagged_count = 0
         for i, row in enumerate(data):
@@ -153,13 +179,24 @@ class AnalysisTableView(QWidget):
                 flagged_count += 1
             
             # Set items
+            cy_raw = row.get('cy')
+            py_raw = row.get('py')
+            var_raw = row.get('variance_abs')
+            disp_pct = row.get('display_pct', '')
+
+            # If both cy and py are 0 (or None), treat as no meaningful value — show '-'
+            cy_is_zero = cy_raw in (None, 0, 0.0, '-')
+            py_is_zero = py_raw in (None, 0, 0.0, '-')
+            if cy_is_zero and py_is_zero:
+                disp_pct = '-'
+
             items = [
                 row.get('particulars', ''),
                 str(row.get('note', '')),
-                self._format_number(row.get('cy', 0)),
-                self._format_number(row.get('py', 0)),
-                self._format_number(row.get('variance_abs', 0)),
-                row.get('display_pct', ''),
+                self._format_number(cy_raw),
+                self._format_number(py_raw),
+                self._format_number(var_raw),
+                disp_pct,
             ]
             
             for j, val in enumerate(items):
@@ -197,19 +234,42 @@ class AnalysisTableView(QWidget):
             remark_text = self.remarks.get(i, row.get('remark', ''))
             remark_item = QTableWidgetItem(str(remark_text))
             self.table.setItem(i, 6, remark_item)
+            
+        # Add the extra rows (blank/notes/signatures/footers)
+        for idx, (cells, is_blank, bg_color, is_bold_row) in enumerate(extra_rows_list):
+            table_row_idx = len(data) + idx
+            for col_idx in range(7):
+                cell_val = cells[col_idx] if col_idx < len(cells) else ''
+                item = QTableWidgetItem(str(cell_val))
+                item.setFlags(item.flags() & ~Qt.ItemFlag.ItemIsEditable)
+                
+                font = QFont('Segoe UI', 10)
+                if is_bold_row:
+                    font.setBold(True)
+                item.setFont(font)
+                item.setBackground(QBrush(QColor(bg_color)))
+                item.setTextAlignment(Qt.AlignmentFlag.AlignLeft | Qt.AlignmentFlag.AlignVCenter)
+                self.table.setItem(table_row_idx, col_idx, item)
         
         # Update stats
         self.total_label.setText(f'Total items: {len(data)}')
         self.flagged_label.setText(f'Flagged (≥10%): {flagged_count}')
     
     def _format_number(self, value):
-        """Format a number with commas."""
+        """Format a number for display.
+        - None (truly blank/missing in source) → '-NA-'
+        - '-'  (dash in source)               → '-'
+        - 0 / 0.0 (zero — likely formula artifact) → '-'
+        - float                               → formatted number
+        """
         if value is None:
-            return '—'
+            return '-NA-'
+        if value == '-':
+            return '-'
         try:
             v = float(value)
             if v == 0:
-                return '0'
+                return '-'   # treat zero as no meaningful value
             unit = getattr(self, 'rounding_unit', 'Lakhs')
             if unit in ('Lakhs', 'Millions', 'Actuals'):
                 return f'{v:,.2f}'
@@ -220,7 +280,7 @@ class AnalysisTableView(QWidget):
     def get_remarks(self):
         """Get current remarks from the table."""
         remarks = {}
-        for i in range(self.table.rowCount()):
+        for i in range(len(self.data)):
             item = self.table.item(i, 6)
             if item and item.text().strip():
                 remarks[i] = item.text().strip()

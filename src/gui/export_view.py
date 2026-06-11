@@ -178,8 +178,10 @@ class ExportView(QWidget):
         if self.export_data:
             client = self.export_data.get('client_name', 'Client').replace(' ', '_')
             fy = self.export_data.get('financial_year', 'FY')
-            return f"{client}_FAR_{fy}.{ext}"
-        return f"FAR_Output.{ext}"
+            prefix = self.export_data.get('report_type', 'FAR')
+            return f"{client}_{prefix}_{fy}.{ext}"
+        prefix = self.export_data.get('report_type', 'FAR') if self.export_data else 'FAR'
+        return f"{prefix}_Output.{ext}"
     
     def _generate_temp_charts(self):
         import tempfile
@@ -245,7 +247,18 @@ class ExportView(QWidget):
                 d.get('rounding_unit', 'Lakhs'),
                 d.get('cy_year', 2025),
                 d.get('py_year', 2024),
-                chart_paths=chart_paths
+                chart_paths=chart_paths,
+                bs_notes=d.get('bs_notes', []),
+                bs_signatures=d.get('bs_signatures', []),
+                bs_footers=d.get('bs_footers', []),
+                pl_notes=d.get('pl_notes', []),
+                pl_signatures=d.get('pl_signatures', []),
+                pl_footers=d.get('pl_footers', []),
+                notes_sheet_notes=d.get('notes_sheet_notes', {}),
+                notes_signatures=d.get('notes_signatures', {}),
+                notes_footers=d.get('notes_footers', {}),
+                report_type=d.get('report_type', 'FAR'),
+                meta=d.get('meta', {}),
             )
             
             self.last_file = filepath
@@ -299,7 +312,18 @@ class ExportView(QWidget):
                 d.get('rounding_unit', 'Lakhs'),
                 d.get('cy_year', 2025),
                 d.get('py_year', 2024),
-                chart_paths=chart_paths
+                chart_paths=chart_paths,
+                bs_notes=d.get('bs_notes', []),
+                bs_signatures=d.get('bs_signatures', []),
+                bs_footers=d.get('bs_footers', []),
+                pl_notes=d.get('pl_notes', []),
+                pl_signatures=d.get('pl_signatures', []),
+                pl_footers=d.get('pl_footers', []),
+                notes_sheet_notes=d.get('notes_sheet_notes', {}),
+                notes_signatures=d.get('notes_signatures', {}),
+                notes_footers=d.get('notes_footers', {}),
+                report_type=d.get('report_type', 'FAR'),
+                meta=d.get('meta', {}),
             )
             
             self.last_file = filepath

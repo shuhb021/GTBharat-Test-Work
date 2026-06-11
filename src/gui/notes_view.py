@@ -75,10 +75,9 @@ class NotesView(QWidget):
         layout.addWidget(self.placeholder)
     
     def load_data(self, notes_data, client_name='', cy_year=None, py_year=None,
-                  rounding_unit='Lakhs'):
+                  rounding_unit='Lakhs', sheet_notes=None, signatures=None, footers=None):
         """
         Populate tabs with notes data.
-        notes_data: dict mapping sheet_name → list of note groups
         """
         self.client_label.setText(f'Client: {client_name}')
         if cy_year and py_year:
@@ -91,11 +90,21 @@ class NotesView(QWidget):
             self.placeholder.show()
             return
         
+        sheet_notes_dict = sheet_notes or {}
+        signatures_dict = signatures or {}
+        footers_dict = footers or {}
+        
         for sheet_name, note_groups in notes_data.items():
-            tab = self._create_notes_tab(note_groups, cy_year, py_year, rounding_unit)
+            sh_notes = sheet_notes_dict.get(sheet_name)
+            sh_sigs = signatures_dict.get(sheet_name)
+            sh_footers = footers_dict.get(sheet_name)
+            
+            tab = self._create_notes_tab(note_groups, cy_year, py_year, rounding_unit,
+                                         notes=sh_notes, signatures=sh_sigs, footers=sh_footers)
             self.tab_widget.addTab(tab, f'Notes {sheet_name}')
     
-    def _create_notes_tab(self, note_groups, cy_year, py_year, rounding_unit):
+    def _create_notes_tab(self, note_groups, cy_year, py_year, rounding_unit,
+                          notes=None, signatures=None, footers=None):
         """Create a tab with tables for each note group."""
         scroll = QScrollArea()
         scroll.setWidgetResizable(True)
@@ -151,9 +160,9 @@ class NotesView(QWidget):
                 
                 items = [
                     row.get('particulars', ''),
-                    self._fmt(row.get('cy', 0), rounding_unit),
-                    self._fmt(row.get('py', 0), rounding_unit),
-                    self._fmt(row.get('variance_abs', 0), rounding_unit),
+                    self._fmt(row.get('cy'), rounding_unit),
+                    self._fmt(row.get('py'), rounding_unit),
+                    self._fmt(row.get('variance_abs'), rounding_unit),
                     row.get('display_pct', ''),
                 ]
                 
@@ -177,11 +186,115 @@ class NotesView(QWidget):
             table.setMinimumHeight(min(len(data) * 30 + 40, 400))
             layout.addWidget(table)
         
+        # Add notes if present
+        if notes:
+            layout.addWidget(QLabel("")) # Spacer
+            notes_header = QLabel("Explanatory Notes & Comments")
+            notes_header.setObjectName('noteHeading')
+            layout.addWidget(notes_header)
+            
+            notes_table = QTableWidget()
+            notes_table.setColumnCount(6)
+            notes_table.setRowCount(len(notes))
+            notes_table.verticalHeader().setVisible(False)
+            notes_table.horizontalHeader().setVisible(False)
+            notes_table.setShowGrid(False)
+            notes_table.setFrameShape(QFrame.Shape.NoFrame)
+            
+            header = notes_table.horizontalHeader()
+            header.setSectionResizeMode(0, QHeaderView.ResizeMode.Stretch)
+            for col_i in range(1, 6):
+                notes_table.setColumnWidth(col_i, 120)
+                
+            for i, n_row in enumerate(notes):
+                for j in range(6):
+                    cell_val = n_row[j] if j < len(n_row) else ''
+                    item = QTableWidgetItem(str(cell_val))
+                    item.setFlags(item.flags() & ~Qt.ItemFlag.ItemIsEditable)
+                    item.setFont(QFont('Segoe UI', 10))
+                    item.setBackground(QBrush(QColor('#FFFFFF')))
+                    item.setTextAlignment(Qt.AlignmentFlag.AlignLeft | Qt.AlignmentFlag.AlignVCenter)
+                    notes_table.setItem(i, j, item)
+            
+            notes_table.setMinimumHeight(len(notes) * 28 + 10)
+            notes_table.setMaximumHeight(len(notes) * 28 + 10)
+            layout.addWidget(notes_table)
+
+        # Add signatures at the bottom if present
+        if signatures:
+            layout.addWidget(QLabel("")) # Spacer
+            sig_header = QLabel("Signatures & Sign-offs")
+            sig_header.setObjectName('noteHeading')
+            layout.addWidget(sig_header)
+            
+            sig_table = QTableWidget()
+            sig_table.setColumnCount(6)
+            sig_table.setRowCount(len(signatures))
+            sig_table.verticalHeader().setVisible(False)
+            sig_table.horizontalHeader().setVisible(False)
+            sig_table.setShowGrid(False)
+            sig_table.setFrameShape(QFrame.Shape.NoFrame)
+            
+            header = sig_table.horizontalHeader()
+            header.setSectionResizeMode(0, QHeaderView.ResizeMode.Stretch)
+            for col_i in range(1, 6):
+                sig_table.setColumnWidth(col_i, 120)
+                
+            for i, s_row in enumerate(signatures):
+                for j in range(6):
+                    cell_val = s_row[j] if j < len(s_row) else ''
+                    item = QTableWidgetItem(str(cell_val))
+                    item.setFlags(item.flags() & ~Qt.ItemFlag.ItemIsEditable)
+                    item.setFont(QFont('Segoe UI', 10))
+                    item.setBackground(QBrush(QColor('#FFFFFF')))
+                    item.setTextAlignment(Qt.AlignmentFlag.AlignLeft | Qt.AlignmentFlag.AlignVCenter)
+                    sig_table.setItem(i, j, item)
+            
+            sig_table.setMinimumHeight(len(signatures) * 28 + 10)
+            sig_table.setMaximumHeight(len(signatures) * 28 + 10)
+            layout.addWidget(sig_table)
+
+        # Add footers if present
+        if footers:
+            layout.addWidget(QLabel("")) # Spacer
+            footers_header = QLabel("Footers & Other Metadata")
+            footers_header.setObjectName('noteHeading')
+            layout.addWidget(footers_header)
+            
+            footers_table = QTableWidget()
+            footers_table.setColumnCount(6)
+            footers_table.setRowCount(len(footers))
+            footers_table.verticalHeader().setVisible(False)
+            footers_table.horizontalHeader().setVisible(False)
+            footers_table.setShowGrid(False)
+            footers_table.setFrameShape(QFrame.Shape.NoFrame)
+            
+            header = footers_table.horizontalHeader()
+            header.setSectionResizeMode(0, QHeaderView.ResizeMode.Stretch)
+            for col_i in range(1, 6):
+                footers_table.setColumnWidth(col_i, 120)
+                
+            for i, f_row in enumerate(footers):
+                for j in range(6):
+                    cell_val = f_row[j] if j < len(f_row) else ''
+                    item = QTableWidgetItem(str(cell_val))
+                    item.setFlags(item.flags() & ~Qt.ItemFlag.ItemIsEditable)
+                    item.setFont(QFont('Segoe UI', 10))
+                    item.setBackground(QBrush(QColor('#FFFFFF')))
+                    item.setTextAlignment(Qt.AlignmentFlag.AlignLeft | Qt.AlignmentFlag.AlignVCenter)
+                    footers_table.setItem(i, j, item)
+            
+            footers_table.setMinimumHeight(len(footers) * 28 + 10)
+            footers_table.setMaximumHeight(len(footers) * 28 + 10)
+            layout.addWidget(footers_table)
+            
         layout.addStretch()
         scroll.setWidget(content)
         return scroll
     
     def _fmt(self, value, rounding_unit='Lakhs'):
+        if value is None or value == '-':
+            return '-'
         try:
             v = float(value)
             if v == 0:

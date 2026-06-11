@@ -76,9 +76,28 @@ def setup_light_palette(app):
     app.setPalette(palette)
 
 
+def load_config():
+    import json
+    config_path = os.path.join(project_root, 'config.json')
+    defaults = {
+        'font_family': 'Segoe UI',
+        'font_size': 11,
+        'ui_zoom': 100
+    }
+    if os.path.exists(config_path):
+        try:
+            with open(config_path, 'r', encoding='utf-8') as f:
+                return {**defaults, **json.load(f)}
+        except Exception:
+            pass
+    return defaults
+
+
 def main():
     """Application entry point."""
     logger = setup_logging()
+    
+    config = load_config()
     
     # Create application
     app = QApplication(sys.argv)
@@ -87,7 +106,15 @@ def main():
     app.setOrganizationName('FAR Automation')
     
     # Set default font
-    font = QFont('Segoe UI', 11)
+    family = config['font_family']
+    size = config['font_size']
+    zoom = config['ui_zoom']
+    zoom_factor = zoom / 100.0
+    size_factor = size / 11.0
+    total_factor = zoom_factor * size_factor
+    
+    scaled_size = int(round(size * zoom_factor))
+    font = QFont(family, scaled_size)
     app.setFont(font)
     
     # Apply light purple palette
@@ -96,8 +123,22 @@ def main():
     # Load QSS stylesheet
     stylesheet = load_stylesheet()
     if stylesheet:
+        import re
+        try:
+            # Replace font family in stylesheet
+            stylesheet = re.sub(r"font-family:\s*[^;]+;", f"font-family: '{family}', sans-serif;", stylesheet)
+            
+            # Scale font size in stylesheet
+            def scale_size(match):
+                val = int(match.group(1))
+                new_val = max(8, int(round(val * total_factor)))
+                return f"font-size: {new_val}px"
+            stylesheet = re.sub(r"font-size:\s*(\d+)\s*px", scale_size, stylesheet)
+        except Exception as e:
+            logger.warning("Failed to scale QSS at startup: %s", e)
+            
         app.setStyleSheet(stylesheet)
-        logger.info("Stylesheet loaded")
+        logger.info("Scaled stylesheet loaded")
     
     # Global exception handler
     def exception_handler(exc_type, exc_value, exc_tb):

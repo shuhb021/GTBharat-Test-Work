@@ -8,9 +8,9 @@ from PyQt6.QtWidgets import (
     QWidget, QVBoxLayout, QHBoxLayout, QFormLayout, QGroupBox,
     QLineEdit, QComboBox, QRadioButton, QCheckBox, QPushButton,
     QLabel, QFileDialog, QProgressDialog, QButtonGroup, QFrame,
-    QScrollArea, QSizePolicy, QMessageBox
+    QScrollArea, QSizePolicy, QMessageBox, QDateEdit
 )
-from PyQt6.QtCore import pyqtSignal, Qt, QThread, pyqtSlot
+from PyQt6.QtCore import pyqtSignal, Qt, QThread, pyqtSlot, QDate
 from PyQt6.QtGui import QFont
 
 
@@ -66,11 +66,6 @@ class FileUploadPanel(QGroupBox):
         self.path_label.setWordWrap(True)
         layout.addWidget(self.path_label)
         
-        # Sheet info
-        self.sheet_label = QLabel('')
-        self.sheet_label.setObjectName('mutedLabel')
-        self.sheet_label.setWordWrap(True)
-        layout.addWidget(self.sheet_label)
     
     def _browse(self):
         if self.multi_select:
@@ -95,18 +90,7 @@ class FileUploadPanel(QGroupBox):
             self.path_label.setObjectName('successLabel')
             self.status_icon.setText('✅')
             
-            # Try to show sheet names
-            try:
-                from openpyxl import load_workbook
-                sheets_info = []
-                for fp in self.file_paths:
-                    wb = load_workbook(fp, read_only=True)
-                    sheets_info.append(f"{os.path.basename(fp)}: {', '.join(wb.sheetnames)}")
-                    wb.close()
-                self.sheet_label.setText('Sheets: ' + ' | '.join(sheets_info))
-            except Exception:
-                self.sheet_label.setText('')
-            
+
             self.fileSelected.emit(self.file_paths[0])
     
     def get_paths(self):
@@ -158,11 +142,130 @@ class InputForm(QWidget):
         self.client_name.setPlaceholderText('Enter client name...')
         info_layout.addRow('Client Name:', self.client_name)
         
-        self.financial_year = QComboBox()
-        years = [f'{y}-{str(y+1)[-2:]}' for y in range(2025, 2019, -1)]
-        self.financial_year.addItems(years)
-        info_layout.addRow('Financial Year:', self.financial_year)
+        # YoY Comparison configuration
+        comp_group = QGroupBox('Year-over-Year Comparison Settings')
+        comp_main_layout = QVBoxLayout(comp_group)
+        comp_main_layout.setSpacing(12)
         
+        cols_layout = QHBoxLayout()
+        
+        # Previous Year Column
+        py_widget = QWidget()
+        py_layout = QFormLayout(py_widget)
+        py_layout.setSpacing(8)
+        py_layout.setContentsMargins(0, 0, 0, 0)
+        
+        self.py_year_sel = QComboBox()
+        years = [f'{y}-{str(y+1)[-2:]}' for y in range(2025, 2019, -1)]
+        self.py_year_sel.addItems(years)
+        if '2024-25' in years:
+            self.py_year_sel.setCurrentText('2024-25')
+        else:
+            self.py_year_sel.setCurrentIndex(1)
+            
+        self.py_from_date = QLineEdit()
+        self.py_from_date.setPlaceholderText('dd-mm-yyyy')
+        self.py_from_date.setText('01-04-2024')
+        self.py_from_date.textChanged.connect(self._update_metrics)
+        
+        self.py_to_date = QLineEdit()
+        self.py_to_date.setPlaceholderText('dd-mm-yyyy')
+        self.py_to_date.setText('31-03-2025')
+        self.py_to_date.textChanged.connect(self._update_metrics)
+        
+        py_layout.addRow('PY Year Selector:', self.py_year_sel)
+        py_layout.addRow('PY From Date:', self.py_from_date)
+        py_layout.addRow('PY To Date:', self.py_to_date)
+        
+        self.py_metrics_label = QLabel('')
+        self.py_metrics_label.setObjectName('mutedLabel')
+        py_layout.addRow('', self.py_metrics_label)
+        
+        cols_layout.addWidget(py_widget)
+        
+        # Vertical Separator
+        v_sep = QFrame()
+        v_sep.setFrameShape(QFrame.Shape.VLine)
+        v_sep.setStyleSheet("color: #E0E0E0;")
+        cols_layout.addWidget(v_sep)
+        
+        # Current Year Column
+        cy_widget = QWidget()
+        cy_layout = QFormLayout(cy_widget)
+        cy_layout.setSpacing(8)
+        cy_layout.setContentsMargins(0, 0, 0, 0)
+        
+        self.cy_year_sel = QComboBox()
+        self.cy_year_sel.addItems(years)
+        self.cy_year_sel.setCurrentText('2025-26')
+        
+        self.cy_from_date = QLineEdit()
+        self.cy_from_date.setPlaceholderText('dd-mm-yyyy')
+        self.cy_from_date.setText('01-04-2025')
+        self.cy_from_date.textChanged.connect(self._update_metrics)
+        
+        self.cy_to_date = QLineEdit()
+        self.cy_to_date.setPlaceholderText('dd-mm-yyyy')
+        self.cy_to_date.setText('31-03-2026')
+        self.cy_to_date.textChanged.connect(self._update_metrics)
+        
+        cy_layout.addRow('CY Year Selector:', self.cy_year_sel)
+        cy_layout.addRow('CY From Date:', self.cy_from_date)
+        cy_layout.addRow('CY To Date:', self.cy_to_date)
+        
+        self.cy_metrics_label = QLabel('')
+        self.cy_metrics_label.setObjectName('mutedLabel')
+        cy_layout.addRow('', self.cy_metrics_label)
+        
+        cols_layout.addWidget(cy_widget)
+        comp_main_layout.addLayout(cols_layout)
+        
+        h_sep = QFrame()
+        h_sep.setFrameShape(QFrame.Shape.HLine)
+        h_sep.setStyleSheet("color: #E0E0E0;")
+        comp_main_layout.addWidget(h_sep)
+        
+        toggle_layout = QHBoxLayout()
+        self.auto_annualize_cb = QCheckBox("Auto Annualize Partial-Year Data")
+        self.auto_annualize_cb.setChecked(True)
+        self.auto_annualize_cb.toggled.connect(self._update_metrics)
+        toggle_layout.addWidget(self.auto_annualize_cb)
+        
+        self.warning_label = QLabel("⚠️ Selected periods are different. Results are being normalized to a full-year equivalent basis.")
+        self.warning_label.setStyleSheet("color: #EAB308; font-weight: 600; font-size: 11px;")
+        self.warning_label.setVisible(False)
+        toggle_layout.addWidget(self.warning_label)
+        toggle_layout.addStretch()
+        
+        comp_main_layout.addLayout(toggle_layout)
+        
+        info_layout.addRow('', comp_group)
+        self._update_metrics()
+        
+        # ── Report Type ──
+        report_type_widget = QWidget()
+        rt_layout = QHBoxLayout(report_type_widget)
+        rt_layout.setContentsMargins(0, 0, 0, 0)
+        rt_layout.setSpacing(24)
+        self.report_type_group = QButtonGroup()
+
+        self.rb_far = QRadioButton("FAR  (Final Analytical Report)")
+        self.rb_far.setChecked(True)
+        self.rb_far.setObjectName('reportTypeRadio')
+        self.report_type_group.addButton(self.rb_far, 0)
+        rt_layout.addWidget(self.rb_far)
+
+        self.rb_par = QRadioButton("PAR  (Preliminary Analytical Report)")
+        self.rb_par.setObjectName('reportTypeRadio')
+        self.report_type_group.addButton(self.rb_par, 1)
+        rt_layout.addWidget(self.rb_par)
+
+        rt_layout.addStretch()
+        info_layout.addRow('Report Type:', report_type_widget)
+
+        # Update Generate button label when report type changes
+        self.report_type_group.buttonToggled.connect(self._update_generate_btn_label)
+
         # Fetch details button
         self.fetch_details_btn = QPushButton("🔍 Auto-Fetch Details from BS File")
         self.fetch_details_btn.setObjectName('fetchDetailsBtn')
@@ -218,7 +321,7 @@ class InputForm(QWidget):
         btn_row = QHBoxLayout()
         btn_row.addStretch()
         
-        self.generate_btn = QPushButton('🚀  Generate FAR Workpaper')
+        self.generate_btn = QPushButton('🚀  Generate FAR Workpaper')  # label updated dynamically
         self.generate_btn.setObjectName('generateFarBtn')
         self.generate_btn.setFixedHeight(48)
         self.generate_btn.setMinimumWidth(280)
@@ -251,6 +354,20 @@ class InputForm(QWidget):
         if not self.fs_upload.is_loaded():
             QMessageBox.warning(self, 'No File Selected', 'Please select a Financial Statement file first.')
             return
+            
+        # Check date range validation before auto-fetching
+        py_from = self._parse_date(self.py_from_date.text())
+        py_to = self._parse_date(self.py_to_date.text())
+        cy_from = self._parse_date(self.cy_from_date.text())
+        cy_to = self._parse_date(self.cy_to_date.text())
+        
+        if not py_from or not py_to or not cy_from or not cy_to:
+            QMessageBox.warning(self, 'Invalid Date Range', 'Please enter valid dates in DD-MM-YYYY format before auto-fetching.')
+            return
+            
+        if py_from > py_to or cy_from > cy_to:
+            QMessageBox.warning(self, 'Invalid Date Range', 'From Date cannot be greater than To Date. Please correct the date range before auto-fetching.')
+            return
         
         filepath = self.fs_upload.get_paths()[0]
         try:
@@ -278,14 +395,29 @@ class InputForm(QWidget):
                 extracted_info.append(f"Client Name: {client_name}")
             
             if cy_year:
-                fy_text = f"{cy_year - 1}-{str(cy_year)[-2:]}"
-                index = self.financial_year.findText(fy_text)
-                if index >= 0:
-                    self.financial_year.setCurrentIndex(index)
+                # Set CY
+                cy_fy_text = f"{cy_year - 1}-{str(cy_year)[-2:]}"
+                idx_cy = self.cy_year_sel.findText(cy_fy_text)
+                if idx_cy >= 0:
+                    self.cy_year_sel.setCurrentIndex(idx_cy)
                 else:
-                    self.financial_year.addItem(fy_text)
-                    self.financial_year.setCurrentText(fy_text)
-                extracted_info.append(f"Financial Year: {fy_text}")
+                    self.cy_year_sel.addItem(cy_fy_text)
+                    self.cy_year_sel.setCurrentText(cy_fy_text)
+                self.cy_from_date.setText(f"01-04-{cy_year - 1}")
+                self.cy_to_date.setText(f"31-03-{cy_year}")
+                
+                # Set PY
+                py_fy_text = f"{cy_year - 2}-{str(cy_year - 1)[-2:]}"
+                idx_py = self.py_year_sel.findText(py_fy_text)
+                if idx_py >= 0:
+                    self.py_year_sel.setCurrentIndex(idx_py)
+                else:
+                    self.py_year_sel.addItem(py_fy_text)
+                    self.py_year_sel.setCurrentText(py_fy_text)
+                self.py_from_date.setText(f"01-04-{cy_year - 2}")
+                self.py_to_date.setText(f"31-03-{cy_year - 1}")
+                
+                extracted_info.append(f"CY: {cy_fy_text} | PY: {py_fy_text}")
                 
             if extracted_info:
                 QMessageBox.information(
@@ -303,6 +435,68 @@ class InputForm(QWidget):
                 f"Failed to parse details from the Balance Sheet file:\n\n{str(e)}"
             )
 
+    def _parse_date(self, text):
+        from PyQt6.QtCore import QDate
+        import datetime
+        try:
+            dt = datetime.datetime.strptime(text.strip(), "%d-%m-%Y")
+            return QDate(dt.year, dt.month, dt.day)
+        except Exception:
+            return None
+
+    def _update_metrics(self):
+        py_from = self._parse_date(self.py_from_date.text())
+        py_to = self._parse_date(self.py_to_date.text())
+        cy_from = self._parse_date(self.cy_from_date.text())
+        cy_to = self._parse_date(self.cy_to_date.text())
+        
+        py_days = 0
+        cy_days = 0
+        
+        # Calculate PY metrics
+        if py_from and py_to:
+            py_days, py_months, py_coverage = self._compute_metrics(py_from, py_to)
+            self.py_metrics_label.setText(f"Days Covered: {py_days} | Months Covered: {py_months} | Coverage: {py_coverage}%")
+        else:
+            self.py_metrics_label.setText("Days Covered: — | Months Covered: — | Coverage: —")
+            
+        # Calculate CY metrics
+        if cy_from and cy_to:
+            cy_days, cy_months, cy_coverage = self._compute_metrics(cy_from, cy_to)
+            self.cy_metrics_label.setText(f"Days Covered: {cy_days} | Months Covered: {cy_months} | Coverage: {cy_coverage}%")
+        else:
+            self.cy_metrics_label.setText("Days Covered: — | Months Covered: — | Coverage: —")
+            
+        # Warning visibility
+        if py_from and py_to and cy_from and cy_to:
+            periods_unequal = (py_days != cy_days)
+            show_warning = periods_unequal and self.auto_annualize_cb.isChecked()
+            self.warning_label.setVisible(show_warning)
+        else:
+            self.warning_label.setVisible(False)
+
+    def _compute_metrics(self, from_qd, to_qd):
+        from_dt = from_qd.toPyDate()
+        to_dt = to_qd.toPyDate()
+        days = (to_dt - from_dt).days + 1
+        if days <= 0:
+            return 0, 0.0, 0.0
+        months = days / 30.4375
+        if days >= 365:
+            months = 12.0
+        coverage = min(100.0, (days / 365.0) * 100.0)
+        return days, round(months, 1), round(coverage, 1)
+
+    def _get_financial_year_string(self):
+        py_from = self._parse_date(self.py_from_date.text())
+        py_to = self._parse_date(self.py_to_date.text())
+        cy_from = self._parse_date(self.cy_from_date.text())
+        cy_to = self._parse_date(self.cy_to_date.text())
+        
+        if cy_from and cy_to and py_from and py_to:
+            return f"{self.cy_year_sel.currentText()} vs {self.py_year_sel.currentText()}"
+        return "Custom Period"
+
     def _validate(self):
         """Validate all form fields."""
         errors = []
@@ -311,6 +505,25 @@ class InputForm(QWidget):
             errors.append('Client Name is required')
         if not self.fs_upload.is_loaded():
             errors.append('Financial Statement file is required')
+            
+        py_from = self._parse_date(self.py_from_date.text())
+        py_to = self._parse_date(self.py_to_date.text())
+        cy_from = self._parse_date(self.cy_from_date.text())
+        cy_to = self._parse_date(self.cy_to_date.text())
+        
+        if not py_from:
+            errors.append('PY From Date must be in DD-MM-YYYY format')
+        if not py_to:
+            errors.append('PY To Date must be in DD-MM-YYYY format')
+        if not cy_from:
+            errors.append('CY From Date must be in DD-MM-YYYY format')
+        if not cy_to:
+            errors.append('CY To Date must be in DD-MM-YYYY format')
+            
+        if py_from and py_to and py_from > py_to:
+            errors.append('PY From Date cannot be greater than PY To Date')
+        if cy_from and cy_to and cy_from > cy_to:
+            errors.append('CY From Date cannot be greater than CY To Date')
         
         if errors:
             self.error_label.setText('⚠️ ' + ' | '.join(errors))
@@ -356,10 +569,24 @@ class InputForm(QWidget):
             logging.getLogger(__name__).warning(
                 "Could not auto-fill client name from workbook: %s", e)
 
+    def _update_generate_btn_label(self):
+        """Update the Generate button label to reflect the selected report type."""
+        rtype = 'FAR' if self.rb_far.isChecked() else 'PAR'
+        self.generate_btn.setText(f'🚀  Generate {rtype} Workpaper')
+
+    def _get_report_type(self):
+        """Return the currently selected report type string."""
+        return 'FAR' if self.rb_far.isChecked() else 'PAR'
+
     def _on_generate(self):
         """Handle Generate button click."""
         if not self._validate():
             return
+            
+        py_from = self._parse_date(self.py_from_date.text())
+        py_to = self._parse_date(self.py_to_date.text())
+        cy_from = self._parse_date(self.cy_from_date.text())
+        cy_to = self._parse_date(self.cy_to_date.text())
         
         unit_btn = self.unit_group.checkedButton()
         unit_text = unit_btn.text() if unit_btn else 'Lakhs'
@@ -368,19 +595,30 @@ class InputForm(QWidget):
         form_data = {
             'firm_name': self.firm_name.text().strip() or 'Audit Firm',
             'client_name': self.client_name.text().strip(),
-            'financial_year': self.financial_year.currentText(),
+            'financial_year': self._get_financial_year_string(),
+            'cy_from_date': cy_from.toString('yyyy-MM-dd') if cy_from else '',
+            'cy_to_date': cy_to.toString('yyyy-MM-dd') if cy_to else '',
+            'py_from_date': py_from.toString('yyyy-MM-dd') if py_from else '',
+            'py_to_date': py_to.toString('yyyy-MM-dd') if py_to else '',
+            'auto_annualize': self.auto_annualize_cb.isChecked(),
             'round_off': self.round_off.isChecked(),
             'rounding_unit': unit_text,
             'notes_required': self.notes_required.isChecked(),
             'bs_file': fs_path,
             'pl_file': fs_path,
             'notes_files': [fs_path] if fs_path else [],
+            'report_type': self._get_report_type(),
         }
         
         self.generateRequested.emit(form_data)
     
     def get_form_data(self):
         """Get current form data without triggering generation."""
+        py_from = self._parse_date(self.py_from_date.text())
+        py_to = self._parse_date(self.py_to_date.text())
+        cy_from = self._parse_date(self.cy_from_date.text())
+        cy_to = self._parse_date(self.cy_to_date.text())
+        
         unit_btn = self.unit_group.checkedButton()
         unit_text = unit_btn.text() if unit_btn else 'Lakhs'
         
@@ -388,11 +626,17 @@ class InputForm(QWidget):
         return {
             'firm_name': self.firm_name.text().strip() or 'Audit Firm',
             'client_name': self.client_name.text().strip(),
-            'financial_year': self.financial_year.currentText(),
+            'financial_year': self._get_financial_year_string(),
+            'cy_from_date': cy_from.toString('yyyy-MM-dd') if cy_from else '',
+            'cy_to_date': cy_to.toString('yyyy-MM-dd') if cy_to else '',
+            'py_from_date': py_from.toString('yyyy-MM-dd') if py_from else '',
+            'py_to_date': py_to.toString('yyyy-MM-dd') if py_to else '',
+            'auto_annualize': self.auto_annualize_cb.isChecked(),
             'round_off': self.round_off.isChecked(),
             'rounding_unit': unit_text,
             'notes_required': self.notes_required.isChecked(),
             'bs_file': fs_path,
             'pl_file': fs_path,
             'notes_files': [fs_path] if fs_path else [],
+            'report_type': self._get_report_type(),
         }
